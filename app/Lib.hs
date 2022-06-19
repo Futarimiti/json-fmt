@@ -11,10 +11,17 @@ import           Text.Printf     (printf)
 
 -- main func: format a json string
 fmt :: String -> String
-fmt str = fmt' . decode . trimLead $ str
+fmt str = fmt' . decode . doubleSlash . trimLead $ str
   where fmt' :: Result JSValue -> String
         fmt' (Error str) = str
         fmt' (Ok jsv)    = toStr jsv
+        doubleSlash :: String -> String
+        doubleSlash str = replace '\\' "\\\\" str
+          where replace :: Char -> [Char] -> String -> String
+                replace _ _ "" = ""
+                replace src dest (x:xs)
+                  | src == x = dest ++ replace src dest xs
+                  | otherwise = x : replace src dest xs
 
 -- weird enough, decode tolerates trailing space but not leading
 trimLead :: String -> String
