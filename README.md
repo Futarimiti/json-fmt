@@ -11,7 +11,7 @@ To install and use:
     ```txt
     cat sample/sample.json | json-fmt
     ```
-    The result should be go to stdout unless otherwise redirected.
+    The formatted result should go to stdout.
 
 `json-fmt` expects valid JSON input, and will not attempt to format inputs detected to be invalid.
 
