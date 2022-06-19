@@ -14,7 +14,7 @@ fmt :: String -> String
 fmt str = fmt' . decode . doubleSlash . trimLead $ str
   where fmt' :: Result JSValue -> String
         fmt' (Error _) = str
-        fmt' (Ok jsv)    = toStr jsv
+        fmt' (Ok jsv)  = toStr jsv
         doubleSlash :: String -> String
         doubleSlash str = replace '\\' "\\\\" str
           where replace :: Char -> [Char] -> String -> String
@@ -40,6 +40,9 @@ toStr (JSString (JSONString str))   = printf "\"%s\"" str
 toStr (JSArray arr)                 = '[' : values arr ++ "]"
     where values xs = intercalate ", " $ map toStr xs
 toStr (JSObject (JSONObject []))    = "{}"
+toStr (JSObject (JSONObject pair@[(str, JSObject (JSONObject []))])) = printf "{ \"%s\": {} }" str
+toStr (JSObject (JSONObject pair@[(_, JSObject _)])) = _fmtWIndent 0 pair
+toStr (JSObject (JSONObject [(str, val)])) = printf "{ \"%s\" : %s }" str (toStr val)
 toStr (JSObject (JSONObject pairs)) = _fmtWIndent 0 pairs
 
 -- fmt for JSObject
@@ -79,7 +82,10 @@ _fmtWIndent n pairs = "{ " ++ intercalate delim kvstrs ++ closing
     -}
 _toKVStr :: Int -> (String, JSValue) -> String
 -- keys must be double quoted
-_toKVStr _ (str, JSObject (JSONObject [])) = printf "\"%s\" : {}" str
-_toKVStr prevIndent (str, JSObject (JSONObject pairs)) = printf "\"%s\" : %s" str (_fmtWIndent (prevIndent + length str + 7) pairs) -- 7 here: 2 from key quotes, 2 from ", " or "{ ", 3 from " , "
-_toKVStr _ (str, val) = printf "\"%s\" : %s" str (toStr val)
+_toKVStr _          (str, JSObject (JSONObject []))                      = printf "\"%s\" : {}" str
+_toKVStr prevIndent (str, JSObject (JSONObject pair@[(string, JSObject (JSONObject []))])) = printf "\"%s\" : { \"%s\" : {} }" str string
+_toKVStr prevIndent (str, JSObject (JSONObject pairs@[(_, JSObject _)])) = printf "\"%s\" : %s" str (_fmtWIndent (prevIndent + length str + 7) pairs)
+_toKVStr _          (str, JSObject (JSONObject [(string, val)]))         = printf "\"%s\" : { \"%s\" : %s }" str string (toStr val)
+_toKVStr prevIndent (str, JSObject (JSONObject pairs))                   = printf "\"%s\" : %s" str (_fmtWIndent (prevIndent + length str + 7) pairs) -- 7 here: 2 from key quotes, 2 from ", " or "{ ", 3 from " , "
+_toKVStr _          (str, val)                                           = printf "\"%s\" : %s" str (toStr val)
 
