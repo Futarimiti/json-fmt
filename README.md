@@ -13,8 +13,7 @@ To install and use:
     ```
     The result should be go to stdout unless otherwise redirected.
 
-Note that `json-fmt` presumes valid JSON input and will not perform syntax check on it;
-behaviours caused by invalid input are undefined and probably won't be supported.
+`json-fmt` expects valid JSON input, and will not attempt to format inputs detected to be invalid.
 
 ### Vim integration
 
