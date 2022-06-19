@@ -1,6 +1,6 @@
 # json-fmt
 
-Searched a range of JSON formatters without finding one supporting comma-leading style so I wrote this
+Searched throught loads of JSON formatters without finding single one supporting comma-leading style so I wrote this
 
 To install and use:
 
