@@ -6,29 +6,21 @@ synopsis: A comma-leading style formatter for JSON
 
 description: Inspired by Haskell style of comma-leading lists, json-fmt is a comma-leading style formatter for JSON.
 
--- A URL where users can report bugs.
--- bug-reports:
-
--- The license under which the package is released.
--- license:
+bug-reports: https://github.com/Futarimiti/json-fmt/issues
+license: GPL-3.0-or-later
+license-file: LICENSE
 author:             Futar
 maintainer:         Futarimiti@163.com
 
--- A copyright notice.
--- copyright:
 category: Text, JSON
 extra-source-files: CHANGELOG.md
 
 executable json-fmt
     main-is:          Main.hs
-
-    -- Modules included in this executable, other than Main.
     other-modules: Lib
-
-    -- LANGUAGE extensions used by modules in this package.
-    -- other-extensions:
     build-depends:
         base ^>=4.14.3.0,
         json ^>=0.10
     hs-source-dirs:   app
+-- The license under which the package is released.
     default-language: Haskell2010
