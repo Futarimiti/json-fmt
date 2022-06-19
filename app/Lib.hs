@@ -13,7 +13,7 @@ import           Text.Printf     (printf)
 fmt :: String -> String
 fmt str = fmt' . decode . doubleSlash . trimLead $ str
   where fmt' :: Result JSValue -> String
-        fmt' (Error str) = str
+        fmt' (Error _) = str
         fmt' (Ok jsv)    = toStr jsv
         doubleSlash :: String -> String
         doubleSlash str = replace '\\' "\\\\" str
