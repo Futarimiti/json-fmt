@@ -1,5 +1,17 @@
 # json-fmt
 
+```json
+{ "array" : [1, 2, 2, 3]
+, "number" : 123
+, "float" : 3.1415926
+, "string" : "abcd"
+, "subobj" : { "k1" : "v1"
+             , "k2" : "v2"
+             , "num" : 0.3
+             }
+}
+```
+
 Searched throught loads of JSON formatters without finding single one supporting comma-leading style so I wrote this
 
 To install and use:
