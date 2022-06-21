@@ -1,7 +1,12 @@
-{
+                                                                            
+
+                                            {
     "array" :         [1, 2, 2
                       , 3
-                            ]
+                            ]                          ,
+                            "mixedarr" : [      "str", 
+true, ["innerlist"]],
+                "objarr" :                [{"ab":"cd","num":0.0}]
                             ,
                             "number"
                             : 123,
