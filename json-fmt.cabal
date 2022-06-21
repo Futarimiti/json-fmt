@@ -17,7 +17,7 @@ extra-source-files: CHANGELOG.md
 
 executable json-fmt
     main-is:          Main.hs
-    other-modules: Lib
+    other-modules: Lib, FmtConfig
     build-depends:
         base ^>=4.14.3.0,
         json ^>=0.10
