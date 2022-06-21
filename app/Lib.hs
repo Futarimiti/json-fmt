@@ -95,7 +95,7 @@ fmtArr conf n [only]
         value = toValue only
         toValue :: JSValue -> String
         toValue (JSArray arr)                 = fmtArr conf n arr
-        toValue (JSObject (JSONObject pairs)) = fmtObj conf n pairs
+        toValue (JSObject (JSONObject pairs)) = fmtObj conf (n + 1 + arrayPaddingSpaceN conf) pairs -- 1 for {
         toValue basic                         = fmtBasic conf basic
         indent = replicate n ' '
 
@@ -109,10 +109,18 @@ fmtArr conf n elems
                 disjoint xs = null . intersect xs
 
   {-
-    [   { "a" = 1
-        }
-    ]
-    ----  <-- 4 spaces: 0 from parent, 1 from [, 3 from arrayPaddingSpaceN
+    { "arr" : [   { "a" : 1
+                  }
+              ]
+    --------------  <-- 14 spaces: 10 from parent, where
+                                   2 from { ,
+                                   2 from "",
+                                   3 from length str,
+                                   1 from spaceNBeforeColon,
+                                   1 from :,
+                                   1 from spaceNAfterColon,
+                                 1 from [,
+                                 3 from arrayPaddingSpaceN
     -}
 
 fmtOnelineArr :: FmtConfig -> Int -> [JSValue] -> String
@@ -129,7 +137,7 @@ fmtOnelineArr conf n elems = printf "[%s%s%s]" pad elemsStr pad
 fmtMultilineArr :: FmtConfig -> Int -> [JSValue] -> String
 fmtMultilineArr conf n elems = printf "[%s%s%s%s]" pad elemsStr (newline conf) indent
   where pad = replicate (arrayPaddingSpaceN conf) ' '
-        elemsStr = intercalate (printf "%s%s,%s" (newline conf) indent (replicate (spaceNAfterArrayComma conf) ' ')) (strify <$> elems)
+        elemsStr = intercalate (printf "%s%s,%s" (newline conf) indent (replicate (arrayPaddingSpaceN conf) ' ')) (strify <$> elems)
         strify :: JSValue -> String
         strify (JSArray arr)                 = fmtArr conf newIndent arr
           where newIndent = n + 1 + arrayPaddingSpaceN conf
