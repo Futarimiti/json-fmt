@@ -1,7 +1,15 @@
 # json-fmt
 
 ```json
-{ "array" : [1, 2, 2, 3]
+{ "array" : [ 1, 2, 2, 3 ]
+, "mixedarr" : [ "str"
+               , true
+               , [ "innerlist" ]
+               ]
+, "objarr" : [ { "ab" : "cd"
+               , "num" : 0
+               }
+             ]
 , "number" : 123
 , "float" : 3.1415926
 , "string" : "abcd"
