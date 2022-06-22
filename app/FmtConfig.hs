@@ -251,21 +251,13 @@ setConf _ _ = error "Imcompatible type detected when setting fmt config"
 -- parse FmtConfig from a JSON string
 -- left: error msg; right: FmtConfig
 parseConfig :: String -> Either String FmtConfig
-parseConfig  = maybeParseConfig . decode . {-doubleSlash .-} trimLead
+parseConfig  = maybeParseConfig . decode . trimLead
   where maybeParseConfig :: Result JSValue -> Either String FmtConfig
         maybeParseConfig (Ok (JSObject (JSONObject kvpairs))) = Right $ makeConfig configVals
           where configVals = foldl (\acc x -> case unbox x of Just y -> y:acc
                                                               _      -> acc) [] kvpairs :: [(ConfigTerm, ConfigValue)]
         maybeParseConfig (Error msg) = Left msg
         maybeParseConfig _           = Left "Expecting a valid object"
-
-        doubleSlash :: String -> String
-        doubleSlash = replace '\\' "\\\\"
-          where replace :: Char -> [Char] -> String -> String
-                replace _ _ "" = ""
-                replace src dest (x:xs)
-                  | src == x = dest ++ replace src dest xs
-                  | otherwise = x : replace src dest xs
 
         -- weird enough, decode tolerates trailing space but not leading
         trimLead :: String -> String
