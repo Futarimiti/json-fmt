@@ -4,7 +4,7 @@ where
 import           Data.Bifunctor  (second)
 import           Data.Char       (isSpace)
 import           Data.List       (intercalate, intersect)
-import           FmtConfig       (FmtConfig (..), ValueType (..), defaultConfig)
+import           FmtConfig
 import           GHC.Real        (Ratio ((:%)))
 import           Text.JSON       (JSValue (..), Result (..), decode)
 import           Text.JSON.Types (JSObject (JSONObject), JSString (JSONString))
@@ -24,20 +24,20 @@ fmt' conf str = maybeAppendNewline . res . decode . doubleSlash . trimLead $ str
           | endWithNewline conf = (++ "\n")
           | otherwise = id
 
-doubleSlash :: String -> String
-doubleSlash = replace '\\' "\\\\"
-  where replace :: Char -> [Char] -> String -> String
-        replace _ _ "" = ""
-        replace src dest (x:xs)
-          | src == x = dest ++ replace src dest xs
-          | otherwise = x : replace src dest xs
+        doubleSlash :: String -> String
+        doubleSlash = replace '\\' "\\\\"
+          where replace :: Char -> [Char] -> String -> String
+                replace _ _ "" = ""
+                replace src dest (x:xs)
+                  | src == x = dest ++ replace src dest xs
+                  | otherwise = x : replace src dest xs
 
--- weird enough, decode tolerates trailing space but not leading
-trimLead :: String -> String
-trimLead "" = ""
-trimLead (x:xs)
-  | isSpace x = trimLead xs
-  | otherwise = x:xs
+        -- weird enough, decode tolerates trailing space but not leading
+        trimLead :: String -> String
+        trimLead "" = ""
+        trimLead (x:xs)
+          | isSpace x = trimLead xs
+          | otherwise = x:xs
 
 colonStyle :: FmtConfig -> String
 colonStyle conf = padL ++ ":" ++ padR
