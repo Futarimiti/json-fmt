@@ -20,7 +20,8 @@ executable json-fmt
     other-modules: Lib, FmtConfig
     build-depends:
         base ^>=4.14.3.0,
-        json ^>=0.10
+        json ^>=0.10,
+        directory ^>=1.3.7.0
     hs-source-dirs:   app
 -- The license under which the package is released.
     default-language: Haskell2010

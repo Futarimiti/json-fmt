@@ -1,6 +1,14 @@
 module FmtConfig
 where
 
+import           Data.Char         (isSpace)
+import           GHC.Real          (Ratio ((:%)))
+import           Text.JSON         (JSON (readJSON), JSValue (..),
+                                    Result (Error, Ok), decode)
+import           Text.JSON.Generic (JSON (showJSON))
+import           Text.JSON.Types   (JSObject (JSONObject),
+                                    JSString (JSONString))
+
   {-
     spaceNBeforeColon, spaceNAfterColon :: Int
       defines number of spaces before and after a key-value separating colon.
@@ -117,7 +125,7 @@ where
 
     elemsOnSepLine :: [ValueType]
       if an array contains one or more elements with types in [ValueType], put each element on separate lines.
-      elemsOnSepLine = [FilledObject, FilledArray, NonEmptyString]
+      elemsOnSepLine = [FilledObject, FilledArray]
         [ 1, 2 ]
         [ true
         , 1.0
@@ -126,34 +134,142 @@ where
         [ [ "elem" ]
         ]
     -}
-data FmtConfig = FmtConfig { spaceNBeforeColon      :: Int
-                           , spaceNAfterColon       :: Int
-                           , spaceNBeforeArrayComma :: Int
-                           , spaceNAfterArrayComma  :: Int
-                           , arrayPaddingSpaceN     :: Int
-                           , spaceNInEmptyArr       :: Int
-                           , spaceNInEmptyObj       :: Int
-                           , bracePaddingSpaceN     :: Int
-                           , endWithNewline         :: Bool
-                           , newline                :: String
-                           , oneEntryOneLine        :: [ValueType]
-                           , oneElemOneLine         :: [ValueType]
-                           , elemsOnSepLine         :: [ValueType]
-                           }
 
-data ValueType = Empty | Null | Bool | Number | EmptyString | NonEmptyString | FilledArray | EmptyArray | FilledObject | EmptyObject deriving Eq
+data ConfigTerm = SpaceNBeforeColon
+                | SpaceNAfterColon
+                | SpaceNBeforeArrayComma
+                | SpaceNAfterArrayComma
+                | ArrayPaddingSpaceN
+                | SpaceNInEmptyArr
+                | SpaceNInEmptyObj
+                | BracePaddingSpaceN
+                | EndWithNewline
+                | Newline
+                | OneEntryOneLine
+                | OneElemOneLine
+                | ElemsOnSepLine
 
-defaultConfig = FmtConfig { spaceNBeforeColon = 1
-                          , spaceNAfterColon = 1
-                          , spaceNBeforeArrayComma = 0
-                          , spaceNAfterArrayComma = 1
-                          , arrayPaddingSpaceN = 1
-                          , spaceNInEmptyArr = 0
-                          , spaceNInEmptyObj = 0
-                          , bracePaddingSpaceN = 1
-                          , endWithNewline = True
-                          , newline = "\n"
-                          , oneEntryOneLine = [ Empty, Null, Bool, Number, EmptyString, NonEmptyString, EmptyArray, EmptyObject ]
-                          , oneElemOneLine = [ Empty, Null, Bool, Number, EmptyString, NonEmptyString, EmptyObject ]
-                          , elemsOnSepLine = [ FilledObject, FilledArray, NonEmptyString ]
+data FmtConfig = FmtConfig { spaceNBeforeColon'      :: ConfigValue
+                           , spaceNAfterColon'       :: ConfigValue
+                           , spaceNBeforeArrayComma' :: ConfigValue
+                           , spaceNAfterArrayComma'  :: ConfigValue
+                           , arrayPaddingSpaceN'     :: ConfigValue
+                           , spaceNInEmptyArr'       :: ConfigValue
+                           , spaceNInEmptyObj'       :: ConfigValue
+                           , bracePaddingSpaceN'     :: ConfigValue
+                           , endWithNewline'         :: ConfigValue
+                           , newline'                :: ConfigValue
+                           , oneEntryOneLine'        :: ConfigValue
+                           , oneElemOneLine'         :: ConfigValue
+                           , elemsOnSepLine'         :: ConfigValue
+                           } deriving Show
+
+data ConfigValue = ConfInt Int | ConfBool Bool | ConfStr String | ConfVTList [ValueType] deriving (Show, Read)
+data ValueType = Empty | Null | Bool | Number | EmptyString | NonEmptyString | FilledArray | EmptyArray | FilledObject | EmptyObject deriving (Eq, Read, Show)
+
+defaultConfig = FmtConfig { spaceNBeforeColon' = ConfInt 1
+                          , spaceNAfterColon' = ConfInt 1
+                          , spaceNBeforeArrayComma' = ConfInt 0
+                          , spaceNAfterArrayComma' = ConfInt 1
+                          , arrayPaddingSpaceN' = ConfInt 1
+                          , spaceNInEmptyArr' = ConfInt 0
+                          , spaceNInEmptyObj' = ConfInt 0
+                          , bracePaddingSpaceN' = ConfInt 1
+                          , endWithNewline' = ConfBool True
+                          , newline' = ConfStr "\n"
+                          , oneEntryOneLine' = ConfVTList [ Empty, Null, Bool, Number, EmptyString, NonEmptyString, EmptyArray, EmptyObject ]
+                          , oneElemOneLine' = ConfVTList [ Empty, Null, Bool, Number, EmptyString, NonEmptyString, EmptyObject ]
+                          , elemsOnSepLine' = ConfVTList [ FilledObject, FilledArray ]
                           }
+
+-- getters ig
+spaceNBeforeColon = getInt . spaceNBeforeColon'
+spaceNAfterColon = getInt . spaceNAfterColon'
+spaceNBeforeArrayComma = getInt . spaceNBeforeArrayComma'
+spaceNAfterArrayComma = getInt . spaceNAfterArrayComma'
+arrayPaddingSpaceN = getInt . arrayPaddingSpaceN'
+spaceNInEmptyArr = getInt . spaceNInEmptyArr'
+spaceNInEmptyObj = getInt . spaceNInEmptyObj'
+bracePaddingSpaceN = getInt . bracePaddingSpaceN'
+endWithNewline = getBool . endWithNewline'
+newline = getStr . newline'
+oneEntryOneLine = getVTList . oneEntryOneLine'
+oneElemOneLine = getVTList .  oneElemOneLine'
+elemsOnSepLine = getVTList . elemsOnSepLine'
+
+getInt (ConfInt n) = n
+getInt _           = undefined
+getBool (ConfBool b) = b
+getBool _            = undefined
+getStr (ConfStr s) = s
+getStr _           = undefined
+getVTList (ConfVTList l) = l
+getVTList _              = undefined
+
+-- unbox config vals from each kvpair
+unbox :: (String, JSValue) -> Maybe (ConfigTerm, ConfigValue)
+unbox ("spaceNBeforeColon", JSRational _ (n :% 1)) = Just (SpaceNBeforeColon, (ConfInt . fromInteger) n)
+unbox ("spaceNAfterColon", JSRational _ (n :% 1))  = Just (SpaceNAfterColon, (ConfInt . fromInteger) n)
+unbox ("spaceNBeforeArrayComma", JSRational _ (n :% 1)) = Just (SpaceNBeforeArrayComma, (ConfInt . fromInteger) n)
+unbox ("spaceNAfterArrayComma", JSRational _ (n :% 1)) = Just (SpaceNAfterArrayComma, (ConfInt . fromInteger) n)
+unbox ("arrayPaddingSpaceN", JSRational _ (n :% 1)) = Just (ArrayPaddingSpaceN, (ConfInt . fromInteger) n)
+unbox ("spaceNInEmptyArr", JSRational _ (n :% 1)) = Just (SpaceNInEmptyArr, (ConfInt . fromInteger) n)
+unbox ("spaceNInEmptyObj", JSRational _ (n :% 1)) = Just (SpaceNInEmptyObj, (ConfInt . fromInteger) n)
+unbox ("bracePaddingSpaceN", JSRational _ (n :% 1)) = Just (BracePaddingSpaceN, (ConfInt . fromInteger) n)
+unbox ("endWithNewline", JSBool b) = Just (EndWithNewline, ConfBool b)
+unbox ("newline", JSString (JSONString str)) = Just (Newline, ConfStr str)
+unbox ("oneEntryOneLine", JSArray strs) = Just (OneEntryOneLine, ConfVTList $ readVTs strs)
+unbox ("oneElemOneLine", JSArray strs) = Just (OneEntryOneLine, ConfVTList $ readVTs strs)
+unbox ("elemsOnSepLine", JSArray strs) = Just (OneEntryOneLine, ConfVTList $ readVTs strs)
+unbox _ = Nothing
+
+readVTs :: [JSValue] -> [ValueType]
+readVTs [] = []
+readVTs xs = foldr (\x acc -> case x of (JSString (JSONString s)) -> read s : acc
+                                        _                         -> acc) [] xs
+
+-- overriding any configVals in defaultConfig
+makeConfig :: [(ConfigTerm, ConfigValue)] -> FmtConfig
+makeConfig = foldl setConf defaultConfig
+
+setConf :: FmtConfig -> (ConfigTerm, ConfigValue) -> FmtConfig
+setConf conf (SpaceNBeforeColon, ConfInt n) = conf { spaceNBeforeColon' = ConfInt n }
+setConf conf (SpaceNAfterColon, ConfInt n) = conf { spaceNAfterColon' = ConfInt n }
+setConf conf (SpaceNBeforeArrayComma, ConfInt n) = conf { spaceNBeforeArrayComma' = ConfInt n }
+setConf conf (SpaceNAfterArrayComma, ConfInt n) = conf { spaceNAfterArrayComma' = ConfInt n }
+setConf conf (ArrayPaddingSpaceN, ConfInt n) = conf { arrayPaddingSpaceN' = ConfInt n }
+setConf conf (SpaceNInEmptyArr, ConfInt n) = conf { spaceNInEmptyArr' = ConfInt n }
+setConf conf (SpaceNInEmptyObj, ConfInt n) = conf { spaceNInEmptyObj' = ConfInt n }
+setConf conf (BracePaddingSpaceN, ConfInt n) = conf { bracePaddingSpaceN' = ConfInt n }
+setConf conf (EndWithNewline, ConfBool b) = conf { endWithNewline' = ConfBool b }
+setConf conf (Newline, ConfStr s) = conf { newline' = ConfStr s }
+setConf conf (OneEntryOneLine, ConfVTList ls) = conf { oneEntryOneLine' = ConfVTList ls }
+setConf conf (OneElemOneLine, ConfVTList ls) = conf { oneElemOneLine' = ConfVTList ls }
+setConf conf (ElemsOnSepLine, ConfVTList ls) = conf { elemsOnSepLine' = ConfVTList ls }
+setConf _ _ = error "Imcompatible type detected when setting fmt config"
+
+-- parse FmtConfig from a JSON string
+-- left: error msg; right: FmtConfig
+parseConfig :: String -> Either String FmtConfig
+parseConfig  = maybeParseConfig . decode . {-doubleSlash .-} trimLead
+  where maybeParseConfig :: Result JSValue -> Either String FmtConfig
+        maybeParseConfig (Ok (JSObject (JSONObject kvpairs))) = Right $ makeConfig configVals
+          where configVals = foldl (\acc x -> case unbox x of Just y -> y:acc
+                                                              _      -> acc) [] kvpairs :: [(ConfigTerm, ConfigValue)]
+        maybeParseConfig (Error msg) = Left msg
+        maybeParseConfig _           = Left "Expecting a valid object"
+
+        doubleSlash :: String -> String
+        doubleSlash = replace '\\' "\\\\"
+          where replace :: Char -> [Char] -> String -> String
+                replace _ _ "" = ""
+                replace src dest (x:xs)
+                  | src == x = dest ++ replace src dest xs
+                  | otherwise = x : replace src dest xs
+
+        -- weird enough, decode tolerates trailing space but not leading
+        trimLead :: String -> String
+        trimLead "" = ""
+        trimLead (x:xs)
+          | isSpace x = trimLead xs
+          | otherwise = x:xs
