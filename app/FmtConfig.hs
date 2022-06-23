@@ -219,8 +219,8 @@ unbox ("bracePaddingSpaceN", JSRational _ (n :% 1)) = Just (BracePaddingSpaceN, 
 unbox ("endWithNewline", JSBool b) = Just (EndWithNewline, ConfBool b)
 unbox ("newline", JSString (JSONString str)) = Just (Newline, ConfStr str)
 unbox ("oneEntryOneLine", JSArray strs) = Just (OneEntryOneLine, ConfVTList $ readVTs strs)
-unbox ("oneElemOneLine", JSArray strs) = Just (OneEntryOneLine, ConfVTList $ readVTs strs)
-unbox ("elemsOnSepLine", JSArray strs) = Just (OneEntryOneLine, ConfVTList $ readVTs strs)
+unbox ("oneElemOneLine", JSArray strs) = Just (OneElemOneLine, ConfVTList $ readVTs strs)
+unbox ("elemsOnSepLine", JSArray strs) = Just (ElemsOnSepLine, ConfVTList $ readVTs strs)
 unbox _ = Nothing
 
 readVTs :: [JSValue] -> [ValueType]
