@@ -35,7 +35,7 @@ To install and use:
 3.  `~/.cabal/bin/json-fmt` should've been generated as an executable; if you haven't, I suggest adding `~/.cabal/bin/` to `$PATH`
 4.  `json-fmt` accepts input json as either a commandline arg or stdin; I put a `sample.json` for testing:
     ```txt
-    cat sample/sample.json | json-fmt
+    json-fmt sample/sample.json
     ```
     The formatted result should go to stdout.
 
