@@ -1,4 +1,22 @@
-module FmtConfig
+module FmtConfig ( FmtConfig (..)
+                 , ConfigValue (..)
+                 , ValueType (..)
+                 , defaultConfig
+                 , spaceNBeforeColon
+                 , spaceNAfterColon
+                 , spaceNBeforeArrayComma
+                 , spaceNAfterArrayComma
+                 , arrayPaddingSpaceN
+                 , spaceNInEmptyArr
+                 , spaceNInEmptyObj
+                 , bracePaddingSpaceN
+                 , endWithNewline
+                 , newline
+                 , oneEntryOneLine
+                 , oneElemOneLine
+                 , elemsOnSepLine
+                 , parseConfig
+                 )
 where
 
 import           Data.Char       (isSpace)
@@ -178,7 +196,7 @@ bracePaddingSpaceN = getInt . bracePaddingSpaceN'
 endWithNewline = getBool . endWithNewline'
 newline = getStr . newline'
 oneEntryOneLine = getVTList . oneEntryOneLine'
-oneElemOneLine = getVTList .  oneElemOneLine'
+oneElemOneLine = getVTList . oneElemOneLine'
 elemsOnSepLine = getVTList . elemsOnSepLine'
 
 getInt (ConfInt n) = n
@@ -190,37 +208,38 @@ getStr _           = undefined
 getVTList (ConfVTList l) = l
 getVTList _              = undefined
 
-makeConfigFrom :: [(String, JSValue)] -> FmtConfig
-makeConfigFrom = foldl maybeSetConf defaultConfig
-  where maybeSetConf :: FmtConfig -> (String, JSValue) -> FmtConfig
-        maybeSetConf conf ("spaceNBeforeColon", JSRational _ (n :% 1)) = conf { spaceNBeforeColon' = ConfInt $ fromInteger n }
-        maybeSetConf conf ("spaceNAfterColon", JSRational _ (n :% 1)) = conf { spaceNAfterColon' = ConfInt $ fromInteger n }
-        maybeSetConf conf ("spaceNBeforeArrayComma", JSRational _ (n :% 1)) = conf { spaceNBeforeArrayComma' = ConfInt $ fromInteger n }
-        maybeSetConf conf ("spaceNAfterArrayComma", JSRational _ (n :% 1)) = conf { spaceNAfterArrayComma' = ConfInt $ fromInteger n }
-        maybeSetConf conf ("arrayPaddingSpaceN", JSRational _ (n :% 1)) = conf { arrayPaddingSpaceN' = ConfInt $ fromInteger n }
-        maybeSetConf conf ("spaceNInEmptyArr", JSRational _ (n :% 1)) = conf { spaceNInEmptyArr' = ConfInt $ fromInteger n }
-        maybeSetConf conf ("spaceNInEmptyObj", JSRational _ (n :% 1)) = conf { spaceNInEmptyObj' = ConfInt $ fromInteger n }
-        maybeSetConf conf ("bracePaddingSpaceN", JSRational _ (n :% 1)) = conf { bracePaddingSpaceN' = ConfInt $ fromInteger n }
-        maybeSetConf conf ("endWithNewline", JSBool b) = conf { endWithNewline' = ConfBool b }
-        maybeSetConf conf ("newline", JSString (JSONString str)) = conf { newline' = ConfStr str }
-        maybeSetConf conf ("oneEntryOneLine", JSArray strs) = conf { oneEntryOneLine' = ConfVTList $ toVTList strs }
-        maybeSetConf conf ("oneElemOneLine", JSArray strs) = conf { oneElemOneLine' = ConfVTList $ toVTList strs }
-        maybeSetConf conf ("elemsOnSepLine", JSArray strs) = conf { elemsOnSepLine' = ConfVTList $ toVTList strs }
-        maybeSetConf conf _ = conf  -- ignore unrecognised kvpairs
-
-        -- ignore any values of invalid type or invalid ValueType
-        -- could make it harder to debug, maybe carry an error msg later?
-        toVTList :: [JSValue] -> [ValueType]
-        toVTList = foldr (\x acc -> case x of (JSString (JSONString s)) -> case readMaybe s of Just vt -> vt : acc
-                                                                                               Nothing -> acc
-                                              _ -> acc) []
-
 -- parse FmtConfig from a JSON string
 -- left: error msg; right: FmtConfig
 parseConfig :: String -> Either String FmtConfig
 parseConfig  = maybeParseConfig . decode . trimLead
   where maybeParseConfig :: Result JSValue -> Either String FmtConfig
         maybeParseConfig (Ok (JSObject (JSONObject kvpairs))) = Right $ makeConfigFrom kvpairs
+          where makeConfigFrom :: [(String, JSValue)] -> FmtConfig
+                makeConfigFrom = foldl maybeSetConf defaultConfig
+
+                maybeSetConf :: FmtConfig -> (String, JSValue) -> FmtConfig
+                maybeSetConf conf ("spaceNBeforeColon", JSRational _ (n :% 1)) = conf { spaceNBeforeColon' = ConfInt $ fromInteger n }
+                maybeSetConf conf ("spaceNAfterColon", JSRational _ (n :% 1)) = conf { spaceNAfterColon' = ConfInt $ fromInteger n }
+                maybeSetConf conf ("spaceNBeforeArrayComma", JSRational _ (n :% 1)) = conf { spaceNBeforeArrayComma' = ConfInt $ fromInteger n }
+                maybeSetConf conf ("spaceNAfterArrayComma", JSRational _ (n :% 1)) = conf { spaceNAfterArrayComma' = ConfInt $ fromInteger n }
+                maybeSetConf conf ("arrayPaddingSpaceN", JSRational _ (n :% 1)) = conf { arrayPaddingSpaceN' = ConfInt $ fromInteger n }
+                maybeSetConf conf ("spaceNInEmptyArr", JSRational _ (n :% 1)) = conf { spaceNInEmptyArr' = ConfInt $ fromInteger n }
+                maybeSetConf conf ("spaceNInEmptyObj", JSRational _ (n :% 1)) = conf { spaceNInEmptyObj' = ConfInt $ fromInteger n }
+                maybeSetConf conf ("bracePaddingSpaceN", JSRational _ (n :% 1)) = conf { bracePaddingSpaceN' = ConfInt $ fromInteger n }
+                maybeSetConf conf ("endWithNewline", JSBool b) = conf { endWithNewline' = ConfBool b }
+                maybeSetConf conf ("newline", JSString (JSONString str)) = conf { newline' = ConfStr str }
+                maybeSetConf conf ("oneEntryOneLine", JSArray strs) = conf { oneEntryOneLine' = ConfVTList $ toVTList strs }
+                maybeSetConf conf ("oneElemOneLine", JSArray strs) = conf { oneElemOneLine' = ConfVTList $ toVTList strs }
+                maybeSetConf conf ("elemsOnSepLine", JSArray strs) = conf { elemsOnSepLine' = ConfVTList $ toVTList strs }
+                maybeSetConf conf _ = conf  -- ignore unrecognised kvpairs
+
+                -- ignore any values of invalid type or invalid ValueType
+                -- could make it harder to debug, maybe carry an error msg later?
+                toVTList :: [JSValue] -> [ValueType]
+                toVTList = foldr (\x acc -> case x of (JSString (JSONString s)) -> case readMaybe s of Just vt -> vt : acc
+                                                                                                       Nothing -> acc
+                                                      _ -> acc) []
+
         maybeParseConfig (Error msg) = Left msg
         maybeParseConfig _           = Left "Expecting a valid object"
 
