@@ -1,14 +1,13 @@
 module Lib (fmtDefault, fmtWithConf)
 where
 
-import           Data.Bifunctor  (second)
-import           Data.Char       (isSpace)
-import           Data.List       (intercalate, intersect)
+import           Data.List       (intercalate)
 import           FmtConfig
 import           GHC.Real        (Ratio ((:%)))
 import           Text.JSON       (JSValue (..), Result (..), decode)
 import           Text.JSON.Types (JSObject (JSONObject), JSString (JSONString))
 import           Text.Printf     (printf)
+import           Util
 
 -- main func: format a json string with default FmtConfig
 fmtDefault :: String -> String
@@ -16,28 +15,19 @@ fmtDefault = fmtWithConf defaultConfig
 
 -- main' func: format a json string with specified FmtConfig
 fmtWithConf :: FmtConfig -> String -> String
-fmtWithConf conf str = maybeAppendNewline . res . decode . doubleSlash . trimLead $ str
-  where res :: Result JSValue -> String
-        res (Error _) = str
-        res (Ok jsv)  = fmtEntire conf jsv
-        maybeAppendNewline
+fmtWithConf conf str = maybeAppendNewline . fmtEntire . decode . doubleSlash . trimLead $ str
+  where maybeAppendNewline
           | endWithNewline conf = (++ "\n")
           | otherwise = id
 
+        fmtEntire :: Result JSValue -> String
+        fmtEntire (Error _)                          = str
+        fmtEntire (Ok (JSArray arr))                 = fmtArr conf 0 arr
+        fmtEntire (Ok (JSObject (JSONObject pairs))) = fmtObj conf 0 pairs
+        fmtEntire (Ok basic)                         = fmtBasic conf basic
+
         doubleSlash :: String -> String
         doubleSlash = replace '\\' "\\\\"
-          where replace :: Char -> [Char] -> String -> String
-                replace _ _ "" = ""
-                replace src dest (x:xs)
-                  | src == x = dest ++ replace src dest xs
-                  | otherwise = x : replace src dest xs
-
-        -- weird enough, decode tolerates trailing space but not leading
-        trimLead :: String -> String
-        trimLead "" = ""
-        trimLead (x:xs)
-          | isSpace x = trimLead xs
-          | otherwise = x:xs
 
 colonStyle :: FmtConfig -> String
 colonStyle conf = padL ++ ":" ++ padR
@@ -59,14 +49,7 @@ toValueType (JSArray [])               = EmptyArray
 toValueType (JSArray _)                = FilledArray
 toValueType (JSObject (JSONObject [])) = EmptyObject
 toValueType (JSObject (JSONObject _))  = FilledObject
-
--- fmt funcs call this function to format the entire json file
--- should not be used to format a single instance of JSValue;
--- use their own func instead.
-fmtEntire :: FmtConfig -> JSValue -> String
-fmtEntire conf (JSArray arr)                 = fmtArr conf 0 arr
-fmtEntire conf (JSObject (JSONObject pairs)) = fmtObj conf 0 pairs
-fmtEntire conf basic                         = fmtBasic conf basic
+-- we do not have an Empty here
 
 -- conf is not used, but could be useful in the future
 -- so does indent, since at present every basic type only occupies one line
@@ -94,57 +77,40 @@ fmtArr conf n [only]
   where pad = replicate (arrayPaddingSpaceN conf) ' '
         value = toValue only
         toValue :: JSValue -> String
-        toValue (JSArray arr)                 = fmtArr conf n arr
-        toValue (JSObject (JSONObject pairs)) = fmtObj conf (n + 1 + arrayPaddingSpaceN conf) pairs -- 1 for {
+        toValue (JSArray arr)                 = fmtArr conf newIndent arr
+        toValue (JSObject (JSONObject pairs)) = fmtObj conf newIndent pairs -- 1 for {
         toValue basic                         = fmtBasic conf basic
+        newIndent = n + 1 + arrayPaddingSpaceN conf
         indent = replicate n ' '
 
 -- multiple elem: check elemsOnSepLine
 fmtArr conf n elems
-  | noSepTypes = fmtOnelineArr conf n elems
+  | elemsOnSepLine conf `disjoint` (toValueType <$> elems) = fmtOnelineArr conf n elems
   | otherwise = fmtMultilineArr conf n elems
-  where noSepTypes :: Bool
-        noSepTypes = elemsOnSepLine conf `disjoint` (toValueType <$> elems)
-          where disjoint :: Eq a => [a] -> [a] -> Bool
-                disjoint xs = null . intersect xs
+  where fmtOnelineArr :: FmtConfig -> Int -> [JSValue] -> String
+        fmtOnelineArr conf n elems = printf "[%s%s%s]" pad elemsStr pad
+          where pad = replicate (arrayPaddingSpaceN conf) ' '
+                elemsStr = intercalate (arrayCommaStyle conf) (strify conf <$> elems)
 
+        fmtMultilineArr :: FmtConfig -> Int -> [JSValue] -> String
+        fmtMultilineArr conf n elems = printf "[%s%s%s%s]" pad elemsStr (newline conf) indent
+          where pad = replicate (arrayPaddingSpaceN conf) ' '
+                elemsStr = intercalate (printf "%s%s,%s" (newline conf) indent pad) (strify conf <$> elems)
+                indent = replicate n ' '
+
+        strify :: FmtConfig -> JSValue -> String
+        strify conf (JSArray arr)                 = fmtArr conf newIndent arr
+        strify conf (JSObject (JSONObject pairs)) = fmtObj conf newIndent pairs
+        strify conf basic                         = fmtBasic conf basic
+        newIndent = n + 1 + arrayPaddingSpaceN conf
   {-
     { "arr" : [   { "a" : 1
                   }
               ]
-    --------------  <-- 14 spaces: 10 from parent, where
-                                   2 from { ,
-                                   2 from "",
-                                   3 from length str,
-                                   1 from spaceNBeforeColon,
-                                   1 from :,
-                                   1 from spaceNAfterColon,
+    --------------  <-- 14 spaces: 10 from parent n,
                                  1 from [,
                                  3 from arrayPaddingSpaceN
     -}
-
-fmtOnelineArr :: FmtConfig -> Int -> [JSValue] -> String
-fmtOnelineArr conf n elems = printf "[%s%s%s]" pad elemsStr pad
-  where pad = replicate (arrayPaddingSpaceN conf) ' '
-        elemsStr = intercalate (arrayCommaStyle conf) (strify <$> elems)
-        strify :: JSValue -> String
-        strify (JSArray arr)                 = fmtArr conf newIndent arr
-          where newIndent = n + 1 + arrayPaddingSpaceN conf
-        strify (JSObject (JSONObject pairs)) = fmtObj conf newIndent pairs
-          where newIndent = n + 1 + arrayPaddingSpaceN conf
-        strify basic                         = fmtBasic conf basic
-
-fmtMultilineArr :: FmtConfig -> Int -> [JSValue] -> String
-fmtMultilineArr conf n elems = printf "[%s%s%s%s]" pad elemsStr (newline conf) indent
-  where pad = replicate (arrayPaddingSpaceN conf) ' '
-        elemsStr = intercalate (printf "%s%s,%s" (newline conf) indent (replicate (arrayPaddingSpaceN conf) ' ')) (strify <$> elems)
-        strify :: JSValue -> String
-        strify (JSArray arr)                 = fmtArr conf newIndent arr
-          where newIndent = n + 1 + arrayPaddingSpaceN conf
-        strify (JSObject (JSONObject pairs)) = fmtObj conf newIndent pairs
-          where newIndent = n + 1 + arrayPaddingSpaceN conf
-        strify basic                         = fmtBasic conf basic
-        indent = replicate n ' '
 
   {-
     generate something like:
@@ -171,7 +137,8 @@ fmtObj conf n [(str, jsv)]
         indent = replicate n ' '
         kvstr = toKVstr (str, jsv)
         toKVstr :: (String, JSValue) -> String
-        toKVstr (str, JSArray arr) = printf "\"%s\"%s%s" str (colonStyle conf) (fmtArr conf n arr)
+        toKVstr (str, JSArray arr) = printf "\"%s\"%s%s" str (colonStyle conf) (fmtArr conf newIndent arr)
+          where newIndent = n + 4 + bracePaddingSpaceN conf + length str + spaceNBeforeColon conf + spaceNAfterColon conf
         toKVstr (str, JSObject (JSONObject o)) = printf "\"%s\"%s%s" str (colonStyle conf) (fmtObj conf newIndent o)
           where newIndent = n + 4 + bracePaddingSpaceN conf + length str + spaceNBeforeColon conf + spaceNAfterColon conf
         toKVstr (str, basic) = printf "\"%s\"%s%s" str (colonStyle conf) (fmtBasic conf basic)
@@ -194,17 +161,15 @@ fmtObj conf n [(str, jsv)]
             -}
 
 -- multiple entries
-fmtObj conf n pairs = fmtMultEntryObj conf n pairs
-
-fmtMultEntryObj :: FmtConfig -> Int -> [(String, JSValue)] -> String
-fmtMultEntryObj conf n pairs = printf "{%s%s%s%s}" pad kvstrsMerged (newline conf) indent
+fmtObj conf n pairs = printf "{%s%s%s%s}" pad kvstrsMerged (newline conf) indent
   where pad = replicate (bracePaddingSpaceN conf) ' '
         indent = replicate n ' '
         kvstrsMerged :: String
-        kvstrsMerged = intercalate (printf "%s%s,%s" (newline conf) indent (replicate (bracePaddingSpaceN conf) ' ')) kvstrs
+        kvstrsMerged = intercalate (printf "%s%s,%s" (newline conf) indent pad) kvstrs
         kvstrs = toKVstr <$> pairs
         toKVstr (str, JSArray arr) = printf "\"%s\"%s%s" str (colonStyle conf) (fmtArr conf newIndent arr)
           where newIndent = n + 4 + bracePaddingSpaceN conf + length str + spaceNBeforeColon conf + spaceNAfterColon conf
         toKVstr (str, JSObject (JSONObject o)) = printf "\"%s\"%s%s" str (colonStyle conf) (fmtObj conf newIndent o)
           where newIndent = n + 4 + bracePaddingSpaceN conf + length str + spaceNBeforeColon conf + spaceNAfterColon conf
         toKVstr (str, basic) = printf "\"%s\"%s%s" str (colonStyle conf) (fmtBasic conf basic)
+
