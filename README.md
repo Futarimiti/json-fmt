@@ -41,6 +41,16 @@ To install and use:
 
 `json-fmt` expects valid JSON input, and will not attempt to format inputs detected to be invalid.
 
+### Command-line args
+
+`json-fmt` reads JSON input from stdin
+
+`json-fmt sample.json` reads JSON input from `sample.json`
+
+#### Flags
+
+`-v` verbose
+
 ### Configuration
 
 `json-fmt` first try to read json file at environment variable `$JSONFMT_CONFIG`;
