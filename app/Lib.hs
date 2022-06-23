@@ -1,4 +1,4 @@
-module Lib (fmt, fmt')
+module Lib (fmtDefault, fmtWithConf)
 where
 
 import           Data.Bifunctor  (second)
@@ -11,12 +11,12 @@ import           Text.JSON.Types (JSObject (JSONObject), JSString (JSONString))
 import           Text.Printf     (printf)
 
 -- main func: format a json string with default FmtConfig
-fmt :: String -> String
-fmt = fmt' defaultConfig
+fmtDefault :: String -> String
+fmtDefault = fmtWithConf defaultConfig
 
 -- main' func: format a json string with specified FmtConfig
-fmt' :: FmtConfig -> String -> String
-fmt' conf str = maybeAppendNewline . res . decode . doubleSlash . trimLead $ str
+fmtWithConf :: FmtConfig -> String -> String
+fmtWithConf conf str = maybeAppendNewline . res . decode . doubleSlash . trimLead $ str
   where res :: Result JSValue -> String
         res (Error _) = str
         res (Ok jsv)  = fmtEntire conf jsv
@@ -60,7 +60,7 @@ toValueType (JSArray _)                = FilledArray
 toValueType (JSObject (JSONObject [])) = EmptyObject
 toValueType (JSObject (JSONObject _))  = FilledObject
 
--- fmt' calls this function to format the entire json file
+-- fmt funcs call this function to format the entire json file
 -- should not be used to format a single instance of JSValue;
 -- use their own func instead.
 fmtEntire :: FmtConfig -> JSValue -> String

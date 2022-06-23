@@ -1,28 +1,28 @@
-module Main where
+module Main (main)
+where
 
+import           Control.Monad      (when)
 import           FmtConfig          (FmtConfig, parseConfig)
-import           Lib                (fmt, fmt')
+import           Lib                (fmtWithConf, fmtDefault)
 import           System.Directory   (doesFileExist)
 import           System.Environment (getArgs, lookupEnv)
 import           System.IO          (IOMode (ReadMode), hGetContents, hPutStrLn,
                                      openFile, stderr)
-import Control.Monad (when)
-
 
 main :: IO ()
 main = getArgs >>= parseArgs
 
 parseArgs :: [String] -> IO ()
-parseArgs []           = getContents >>= fmtWithMaybeConfig False
+parseArgs []               = getContents >>= fmtWithMaybeConfig False
 parseArgs ["-v", filepath] = readFile filepath >>= fmtWithMaybeConfig True
 parseArgs [filepath, "-v"] = readFile filepath >>= fmtWithMaybeConfig True
-parseArgs (filepath:_) = readFile filepath >>= fmtWithMaybeConfig False
+parseArgs (filepath:_)     = readFile filepath >>= fmtWithMaybeConfig False
 
 fmtWithMaybeConfig :: Bool -> String -> IO ()
 fmtWithMaybeConfig verbose str = do maybeConf' <- maybeConf
                                     case maybeConf' of Left msg -> do when verbose $ hPutStrLn stderr msg
-                                                                      putStrLn $ fmt str
-                                                       Right conf -> putStrLn $ fmt' conf str
+                                                                      putStrLn $ fmtDefault str
+                                                       Right conf -> putStrLn $ fmtWithConf conf str
 
   {-
     get config from $JSONFMT_CONFIG
