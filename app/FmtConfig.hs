@@ -1,13 +1,11 @@
 module FmtConfig
 where
 
-import           Data.Char         (isSpace)
-import           GHC.Real          (Ratio ((:%)))
-import           Text.JSON         (JSON (readJSON), JSValue (..),
-                                    Result (Error, Ok), decode)
-import           Text.JSON.Generic (JSON (showJSON))
-import           Text.JSON.Types   (JSObject (JSONObject),
-                                    JSString (JSONString))
+import           Data.Char       (isSpace)
+import           GHC.Real        (Ratio ((:%)))
+import           Text.JSON       (JSValue (..), Result (Error, Ok), decode)
+import           Text.JSON.Types (JSObject (JSONObject), JSString (JSONString))
+import           Text.Read       (readMaybe)
 
   {-
     spaceNBeforeColon, spaceNAfterColon :: Int
@@ -135,20 +133,6 @@ import           Text.JSON.Types   (JSObject (JSONObject),
         ]
     -}
 
-data ConfigTerm = SpaceNBeforeColon
-                | SpaceNAfterColon
-                | SpaceNBeforeArrayComma
-                | SpaceNAfterArrayComma
-                | ArrayPaddingSpaceN
-                | SpaceNInEmptyArr
-                | SpaceNInEmptyObj
-                | BracePaddingSpaceN
-                | EndWithNewline
-                | Newline
-                | OneEntryOneLine
-                | OneElemOneLine
-                | ElemsOnSepLine
-
 data FmtConfig = FmtConfig { spaceNBeforeColon'      :: ConfigValue
                            , spaceNAfterColon'       :: ConfigValue
                            , spaceNBeforeArrayComma' :: ConfigValue
@@ -162,10 +146,10 @@ data FmtConfig = FmtConfig { spaceNBeforeColon'      :: ConfigValue
                            , oneEntryOneLine'        :: ConfigValue
                            , oneElemOneLine'         :: ConfigValue
                            , elemsOnSepLine'         :: ConfigValue
-                           } deriving Show
+                           }
 
-data ConfigValue = ConfInt Int | ConfBool Bool | ConfStr String | ConfVTList [ValueType] deriving (Show, Read)
-data ValueType = Empty | Null | Bool | Number | EmptyString | NonEmptyString | FilledArray | EmptyArray | FilledObject | EmptyObject deriving (Eq, Read, Show)
+data ConfigValue = ConfInt Int | ConfBool Bool | ConfStr String | ConfVTList [ValueType]
+data ValueType = Empty | Null | Bool | Number | EmptyString | NonEmptyString | FilledArray | EmptyArray | FilledObject | EmptyObject deriving (Eq, Read)
 
 defaultConfig = FmtConfig { spaceNBeforeColon' = ConfInt 1
                           , spaceNAfterColon' = ConfInt 1
@@ -206,54 +190,37 @@ getStr _           = undefined
 getVTList (ConfVTList l) = l
 getVTList _              = undefined
 
--- unbox config vals from each kvpair
-unbox :: (String, JSValue) -> Maybe (ConfigTerm, ConfigValue)
-unbox ("spaceNBeforeColon", JSRational _ (n :% 1)) = Just (SpaceNBeforeColon, (ConfInt . fromInteger) n)
-unbox ("spaceNAfterColon", JSRational _ (n :% 1))  = Just (SpaceNAfterColon, (ConfInt . fromInteger) n)
-unbox ("spaceNBeforeArrayComma", JSRational _ (n :% 1)) = Just (SpaceNBeforeArrayComma, (ConfInt . fromInteger) n)
-unbox ("spaceNAfterArrayComma", JSRational _ (n :% 1)) = Just (SpaceNAfterArrayComma, (ConfInt . fromInteger) n)
-unbox ("arrayPaddingSpaceN", JSRational _ (n :% 1)) = Just (ArrayPaddingSpaceN, (ConfInt . fromInteger) n)
-unbox ("spaceNInEmptyArr", JSRational _ (n :% 1)) = Just (SpaceNInEmptyArr, (ConfInt . fromInteger) n)
-unbox ("spaceNInEmptyObj", JSRational _ (n :% 1)) = Just (SpaceNInEmptyObj, (ConfInt . fromInteger) n)
-unbox ("bracePaddingSpaceN", JSRational _ (n :% 1)) = Just (BracePaddingSpaceN, (ConfInt . fromInteger) n)
-unbox ("endWithNewline", JSBool b) = Just (EndWithNewline, ConfBool b)
-unbox ("newline", JSString (JSONString str)) = Just (Newline, ConfStr str)
-unbox ("oneEntryOneLine", JSArray strs) = Just (OneEntryOneLine, ConfVTList $ readVTs strs)
-unbox ("oneElemOneLine", JSArray strs) = Just (OneElemOneLine, ConfVTList $ readVTs strs)
-unbox ("elemsOnSepLine", JSArray strs) = Just (ElemsOnSepLine, ConfVTList $ readVTs strs)
-unbox _ = Nothing
+makeConfigFrom :: [(String, JSValue)] -> FmtConfig
+makeConfigFrom = foldl maybeSetConf defaultConfig
+  where maybeSetConf :: FmtConfig -> (String, JSValue) -> FmtConfig
+        maybeSetConf conf ("spaceNBeforeColon", JSRational _ (n :% 1)) = conf { spaceNBeforeColon' = ConfInt $ fromInteger n }
+        maybeSetConf conf ("spaceNAfterColon", JSRational _ (n :% 1)) = conf { spaceNAfterColon' = ConfInt $ fromInteger n }
+        maybeSetConf conf ("spaceNBeforeArrayComma", JSRational _ (n :% 1)) = conf { spaceNBeforeArrayComma' = ConfInt $ fromInteger n }
+        maybeSetConf conf ("spaceNAfterArrayComma", JSRational _ (n :% 1)) = conf { spaceNAfterArrayComma' = ConfInt $ fromInteger n }
+        maybeSetConf conf ("arrayPaddingSpaceN", JSRational _ (n :% 1)) = conf { arrayPaddingSpaceN' = ConfInt $ fromInteger n }
+        maybeSetConf conf ("spaceNInEmptyArr", JSRational _ (n :% 1)) = conf { spaceNInEmptyArr' = ConfInt $ fromInteger n }
+        maybeSetConf conf ("spaceNInEmptyObj", JSRational _ (n :% 1)) = conf { spaceNInEmptyObj' = ConfInt $ fromInteger n }
+        maybeSetConf conf ("bracePaddingSpaceN", JSRational _ (n :% 1)) = conf { bracePaddingSpaceN' = ConfInt $ fromInteger n }
+        maybeSetConf conf ("endWithNewline", JSBool b) = conf { endWithNewline' = ConfBool b }
+        maybeSetConf conf ("newline", JSString (JSONString str)) = conf { newline' = ConfStr str }
+        maybeSetConf conf ("oneEntryOneLine", JSArray strs) = conf { oneEntryOneLine' = ConfVTList $ toVTList strs }
+        maybeSetConf conf ("oneElemOneLine", JSArray strs) = conf { oneElemOneLine' = ConfVTList $ toVTList strs }
+        maybeSetConf conf ("elemsOnSepLine", JSArray strs) = conf { elemsOnSepLine' = ConfVTList $ toVTList strs }
+        maybeSetConf conf _ = conf  -- ignore unrecognised kvpairs
 
-readVTs :: [JSValue] -> [ValueType]
-readVTs = foldr (\x acc -> case x of (JSString (JSONString s)) -> read s : acc
-                                     _                         -> acc) []
-
--- overriding any configVals in defaultConfig
-makeConfig :: [(ConfigTerm, ConfigValue)] -> FmtConfig
-makeConfig = foldl setConf defaultConfig
-  where setConf :: FmtConfig -> (ConfigTerm, ConfigValue) -> FmtConfig
-        setConf conf (SpaceNBeforeColon, ConfInt n) = conf { spaceNBeforeColon' = ConfInt n }
-        setConf conf (SpaceNAfterColon, ConfInt n) = conf { spaceNAfterColon' = ConfInt n }
-        setConf conf (SpaceNBeforeArrayComma, ConfInt n) = conf { spaceNBeforeArrayComma' = ConfInt n }
-        setConf conf (SpaceNAfterArrayComma, ConfInt n) = conf { spaceNAfterArrayComma' = ConfInt n }
-        setConf conf (ArrayPaddingSpaceN, ConfInt n) = conf { arrayPaddingSpaceN' = ConfInt n }
-        setConf conf (SpaceNInEmptyArr, ConfInt n) = conf { spaceNInEmptyArr' = ConfInt n }
-        setConf conf (SpaceNInEmptyObj, ConfInt n) = conf { spaceNInEmptyObj' = ConfInt n }
-        setConf conf (BracePaddingSpaceN, ConfInt n) = conf { bracePaddingSpaceN' = ConfInt n }
-        setConf conf (EndWithNewline, ConfBool b) = conf { endWithNewline' = ConfBool b }
-        setConf conf (Newline, ConfStr s) = conf { newline' = ConfStr s }
-        setConf conf (OneEntryOneLine, ConfVTList ls) = conf { oneEntryOneLine' = ConfVTList ls }
-        setConf conf (OneElemOneLine, ConfVTList ls) = conf { oneElemOneLine' = ConfVTList ls }
-        setConf conf (ElemsOnSepLine, ConfVTList ls) = conf { elemsOnSepLine' = ConfVTList ls }
-        setConf _ _ = error "Imcompatible type detected when setting fmt config"
+        -- ignore any values of invalid type or invalid ValueType
+        -- could make it harder to debug, maybe carry an error msg later?
+        toVTList :: [JSValue] -> [ValueType]
+        toVTList = foldr (\x acc -> case x of (JSString (JSONString s)) -> case readMaybe s of Just vt -> vt : acc
+                                                                                               Nothing -> acc
+                                              _ -> acc) []
 
 -- parse FmtConfig from a JSON string
 -- left: error msg; right: FmtConfig
 parseConfig :: String -> Either String FmtConfig
 parseConfig  = maybeParseConfig . decode . trimLead
   where maybeParseConfig :: Result JSValue -> Either String FmtConfig
-        maybeParseConfig (Ok (JSObject (JSONObject kvpairs))) = Right $ makeConfig configVals
-          where configVals = foldl (\acc x -> case unbox x of Just y -> y:acc
-                                                              _      -> acc) [] kvpairs :: [(ConfigTerm, ConfigValue)]
+        maybeParseConfig (Ok (JSObject (JSONObject kvpairs))) = Right $ makeConfigFrom kvpairs
         maybeParseConfig (Error msg) = Left msg
         maybeParseConfig _           = Left "Expecting a valid object"
 
