@@ -224,29 +224,27 @@ unbox ("elemsOnSepLine", JSArray strs) = Just (OneEntryOneLine, ConfVTList $ rea
 unbox _ = Nothing
 
 readVTs :: [JSValue] -> [ValueType]
-readVTs [] = []
-readVTs xs = foldr (\x acc -> case x of (JSString (JSONString s)) -> read s : acc
-                                        _                         -> acc) [] xs
+readVTs = foldr (\x acc -> case x of (JSString (JSONString s)) -> read s : acc
+                                     _                         -> acc) []
 
 -- overriding any configVals in defaultConfig
 makeConfig :: [(ConfigTerm, ConfigValue)] -> FmtConfig
 makeConfig = foldl setConf defaultConfig
-
-setConf :: FmtConfig -> (ConfigTerm, ConfigValue) -> FmtConfig
-setConf conf (SpaceNBeforeColon, ConfInt n) = conf { spaceNBeforeColon' = ConfInt n }
-setConf conf (SpaceNAfterColon, ConfInt n) = conf { spaceNAfterColon' = ConfInt n }
-setConf conf (SpaceNBeforeArrayComma, ConfInt n) = conf { spaceNBeforeArrayComma' = ConfInt n }
-setConf conf (SpaceNAfterArrayComma, ConfInt n) = conf { spaceNAfterArrayComma' = ConfInt n }
-setConf conf (ArrayPaddingSpaceN, ConfInt n) = conf { arrayPaddingSpaceN' = ConfInt n }
-setConf conf (SpaceNInEmptyArr, ConfInt n) = conf { spaceNInEmptyArr' = ConfInt n }
-setConf conf (SpaceNInEmptyObj, ConfInt n) = conf { spaceNInEmptyObj' = ConfInt n }
-setConf conf (BracePaddingSpaceN, ConfInt n) = conf { bracePaddingSpaceN' = ConfInt n }
-setConf conf (EndWithNewline, ConfBool b) = conf { endWithNewline' = ConfBool b }
-setConf conf (Newline, ConfStr s) = conf { newline' = ConfStr s }
-setConf conf (OneEntryOneLine, ConfVTList ls) = conf { oneEntryOneLine' = ConfVTList ls }
-setConf conf (OneElemOneLine, ConfVTList ls) = conf { oneElemOneLine' = ConfVTList ls }
-setConf conf (ElemsOnSepLine, ConfVTList ls) = conf { elemsOnSepLine' = ConfVTList ls }
-setConf _ _ = error "Imcompatible type detected when setting fmt config"
+  where setConf :: FmtConfig -> (ConfigTerm, ConfigValue) -> FmtConfig
+        setConf conf (SpaceNBeforeColon, ConfInt n) = conf { spaceNBeforeColon' = ConfInt n }
+        setConf conf (SpaceNAfterColon, ConfInt n) = conf { spaceNAfterColon' = ConfInt n }
+        setConf conf (SpaceNBeforeArrayComma, ConfInt n) = conf { spaceNBeforeArrayComma' = ConfInt n }
+        setConf conf (SpaceNAfterArrayComma, ConfInt n) = conf { spaceNAfterArrayComma' = ConfInt n }
+        setConf conf (ArrayPaddingSpaceN, ConfInt n) = conf { arrayPaddingSpaceN' = ConfInt n }
+        setConf conf (SpaceNInEmptyArr, ConfInt n) = conf { spaceNInEmptyArr' = ConfInt n }
+        setConf conf (SpaceNInEmptyObj, ConfInt n) = conf { spaceNInEmptyObj' = ConfInt n }
+        setConf conf (BracePaddingSpaceN, ConfInt n) = conf { bracePaddingSpaceN' = ConfInt n }
+        setConf conf (EndWithNewline, ConfBool b) = conf { endWithNewline' = ConfBool b }
+        setConf conf (Newline, ConfStr s) = conf { newline' = ConfStr s }
+        setConf conf (OneEntryOneLine, ConfVTList ls) = conf { oneEntryOneLine' = ConfVTList ls }
+        setConf conf (OneElemOneLine, ConfVTList ls) = conf { oneElemOneLine' = ConfVTList ls }
+        setConf conf (ElemsOnSepLine, ConfVTList ls) = conf { elemsOnSepLine' = ConfVTList ls }
+        setConf _ _ = error "Imcompatible type detected when setting fmt config"
 
 -- parse FmtConfig from a JSON string
 -- left: error msg; right: FmtConfig
