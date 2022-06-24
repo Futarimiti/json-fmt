@@ -43,13 +43,13 @@ parsePathOpts = foldr iter ([], (Nothing, []))
   isLongOpt str = "--" `isPrefixOf` str
   isShortOpt str = "-" `isPrefixOf` str && not ("--" `isPrefixOf` str)
 
-readLongOpt :: String -> Maybe Option
-readLongOpt "--verbose" = return Verbose
-readLongOpt _           = Nothing
+  readLongOpt :: String -> Maybe Option
+  readLongOpt "--verbose" = return Verbose
+  readLongOpt _           = Nothing
 
-readShortOpt :: String -> Maybe Option
-readShortOpt "-v" = return Verbose
-readShortOpt _    = Nothing
+  readShortOpt :: String -> Maybe Option
+  readShortOpt "-v" = return Verbose
+  readShortOpt _    = Nothing
 
 -- read file or stdin, do fmt (optionally using opts), report errors
 doFmt :: (Maybe FilePath, [Option]) -> IO ([Log], String)
