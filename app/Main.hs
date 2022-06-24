@@ -17,9 +17,9 @@ main = getArgs >>= manageArgs >>= setOutputs >>= output
 type Log = String
 
 manageArgs :: [String]
-           -> IO (Maybe Log, String, [Option]) -- maybe (entire) log, (maybe) formatted result, opts
+           -> IO ([Log], String, [Option]) -- logs, maybe formatted result, opts
 manageArgs args = do (fmtLogs, fmtRes) <- doFmt (maybeFP, opts)
-                     return (intercalate "\n" <$> merge parseLogs fmtLogs, fmtRes, opts) -- "\n" will be automatically converted to \r\n on Windows
+                     return (parseLogs ++ fmtLogs, fmtRes, opts)
   where (parseLogs, (maybeFP, opts)) = parsePathOpts args
 
 -- assuming args containing 0 or 1 arg of filepath and any number of valid opts
@@ -91,10 +91,11 @@ data Option = Verbose
               deriving Eq
 
 -- decides which go to stdout and which go to stderr
-setOutputs :: (Maybe Log, String, [Option])
+setOutputs :: ([Log], String, [Option])
            -> IO (Maybe String, String) -- to stderr, to stdout
-setOutputs (maybeLog, str, opts)
-  | Verbose `elem` opts = return (maybeLog, str)
+setOutputs ([], str, opts) = return (Nothing, str)
+setOutputs (logs, str, opts)
+  | Verbose `elem` opts = return (Just (intercalate "\n" logs), str)
   | otherwise = return (Nothing, str)
 
 -- do print
