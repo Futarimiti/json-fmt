@@ -32,7 +32,7 @@ parsePathOpts = foldr iter ([], (Nothing, []))
                                           Just opt -> (logs, (Just fp, opt:opts))
     | isShortOpt x = case readShortOpt x of Nothing -> (("Unrecognised short option: " ++ x):logs, (Just fp, opts))
                                             Just opt -> (logs, (Just fp, opt:opts))
-    | otherwise = (logs ++ ["Multiple file paths: " ++ fp ++ " and " ++ x], (Just fp, opts))
+    | otherwise = (("Multiple file paths: " ++ fp ++ " and " ++ x):logs, (Just fp, opts))
   iter x (logs, (Nothing, opts))
     | isLongOpt x = case readLongOpt x of Nothing -> (("Unrecognised long option: " ++ x):logs, (Nothing, opts))
                                           Just opt -> (logs, (Nothing, opt:opts))
@@ -40,8 +40,8 @@ parsePathOpts = foldr iter ([], (Nothing, []))
                                             Just opt -> (logs, (Nothing, opt:opts))
     | otherwise = (logs, (Just x, opts))
 
-isLongOpt str = "--" `isPrefixOf` str
-isShortOpt str = "-" `isPrefixOf` str && not ("--" `isPrefixOf` str)
+  isLongOpt str = "--" `isPrefixOf` str
+  isShortOpt str = "-" `isPrefixOf` str && not ("--" `isPrefixOf` str)
 
 readLongOpt :: String -> Maybe Option
 readLongOpt "--verbose" = return Verbose
