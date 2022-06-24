@@ -12,7 +12,7 @@ import           System.IO          (IOMode (ReadMode), hGetContents, hPutStrLn,
 import           Util
 
 main :: IO ()
-main = getArgs >>= manageArgs >>= setOutputs >>= output
+main = (getArgs >>= manageArgs) >>= output . setOutputs
 
 type Log = String
 
@@ -92,11 +92,11 @@ data Option = Verbose
 
 -- decides which go to stdout and which go to stderr
 setOutputs :: ([Log], String, [Option])
-           -> IO (Maybe String, String) -- to stderr, to stdout
-setOutputs ([], str, opts) = return (Nothing, str)
+           -> (Maybe String, String) -- to stderr, to stdout
+setOutputs ([], str, opts) = (Nothing, str)
 setOutputs (logs, str, opts)
-  | Verbose `elem` opts = return (Just (intercalate "\n" logs), str)
-  | otherwise = return (Nothing, str)
+  | Verbose `elem` opts = (Just (intercalate "\n" logs), str)
+  | otherwise = (Nothing, str)
 
 -- do print
 output :: (Maybe String, String) -> IO ()
