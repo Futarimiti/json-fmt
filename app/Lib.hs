@@ -9,22 +9,24 @@ import           Text.JSON.Types (JSObject (JSONObject), JSString (JSONString))
 import           Text.Printf     (printf)
 import           Util
 
+type ErrorMsg = String
+
 -- main func: format a json string with default FmtConfig
-fmtDefault :: String -> String
+fmtDefault :: String -> Either ErrorMsg String
 fmtDefault = fmtWithConf defaultConfig
 
 -- main' func: format a json string with specified FmtConfig
-fmtWithConf :: FmtConfig -> String -> String
-fmtWithConf conf str = maybeAppendNewline . fmtEntire . decode . doubleSlash . trimLead $ str
+fmtWithConf :: FmtConfig -> String -> Either ErrorMsg String
+fmtWithConf conf str = maybeAppendNewline <$> (fmtEntire . decode . doubleSlash . trimLead $ str)
   where maybeAppendNewline
           | endWithNewline conf = (++ "\n")
           | otherwise = id
 
-        fmtEntire :: Result JSValue -> String
-        fmtEntire (Error _)                          = str
-        fmtEntire (Ok (JSArray arr))                 = fmtArr conf 0 arr
-        fmtEntire (Ok (JSObject (JSONObject pairs))) = fmtObj conf 0 pairs
-        fmtEntire (Ok basic)                         = fmtBasic conf basic
+        fmtEntire :: Result JSValue -> Either ErrorMsg String
+        fmtEntire (Error msg)                        = Left $ "Invalid JSON string: " ++ msg
+        fmtEntire (Ok (JSArray arr))                 = Right $ fmtArr conf 0 arr
+        fmtEntire (Ok (JSObject (JSONObject pairs))) = Right $ fmtObj conf 0 pairs
+        fmtEntire (Ok basic)                         = Right $ fmtBasic conf basic
 
         doubleSlash :: String -> String
         doubleSlash = replace '\\' "\\\\"

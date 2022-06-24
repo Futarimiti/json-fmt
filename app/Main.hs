@@ -1,52 +1,111 @@
 module Main (main)
 where
 
-import           Control.Monad      (when)
-import           FmtConfig          (FmtConfig, parseConfig)
-import           Lib                (fmtWithConf, fmtDefault)
+import           Data.List          (intercalate, isPrefixOf)
+import           FmtConfig          (FmtConfig, defaultConfig, parseConfig)
+import           Lib                (fmtDefault, fmtWithConf)
 import           System.Directory   (doesFileExist)
 import           System.Environment (getArgs, lookupEnv)
+import           System.FilePath    ((</>))
 import           System.IO          (IOMode (ReadMode), hGetContents, hPutStrLn,
-                                     openFile, stderr)
+                                     openFile, stderr, stdin)
+import           Util
 
 main :: IO ()
-main = getArgs >>= parseArgs
+main = getArgs >>= manageArgs >>= setOutputs >>= output
 
-parseArgs :: [String] -> IO ()
-parseArgs []               = getContents >>= fmtWithMaybeConfig False
-parseArgs ["-v", filepath] = readFile filepath >>= fmtWithMaybeConfig True
-parseArgs [filepath, "-v"] = readFile filepath >>= fmtWithMaybeConfig True
-parseArgs (filepath:_)     = readFile filepath >>= fmtWithMaybeConfig False
+type Log = String
 
-fmtWithMaybeConfig :: Bool -> String -> IO ()
-fmtWithMaybeConfig verbose str = do maybeConf' <- maybeConf
-                                    case maybeConf' of Left msg -> do when verbose $ hPutStrLn stderr msg
-                                                                      putStrLn $ fmtDefault str
-                                                       Right conf -> putStrLn $ fmtWithConf conf str
+manageArgs :: [String]
+           -> IO (Maybe Log, String, [Option]) -- maybe (entire) log, (maybe) formatted result, opts
+manageArgs args = do (fmtLogs, fmtRes) <- doFmt (maybeFP, opts)
+                     return (intercalate "\n" <$> merge parseLogs fmtLogs, fmtRes, opts) -- "\n" will be automatically converted to \r\n on Windows
+  where (parseLogs, (maybeFP, opts)) = parsePathOpts args
+
+-- assuming args containing 0 or 1 arg of filepath and any number of valid opts
+parsePathOpts :: [String] -> ([Log], (Maybe FilePath, [Option])) -- log (for e.g. unrecognised opts), filepath and opts
+parsePathOpts = foldr iter ([], (Nothing, []))
+  where
+  iter :: String -> ([Log], (Maybe FilePath, [Option])) -> ([Log], (Maybe FilePath, [Option]))
+  iter x (logs, (Just fp, opts))
+    | isLongOpt x = case readLongOpt x of Nothing -> (("Unrecognised long option: " ++ x):logs, (Just fp, opts))
+                                          Just opt -> (logs, (Just fp, opt:opts))
+    | isShortOpt x = case readShortOpt x of Nothing -> (("Unrecognised short option: " ++ x):logs, (Just fp, opts))
+                                            Just opt -> (logs, (Just fp, opt:opts))
+    | otherwise = (logs ++ ["Multiple file paths: " ++ fp ++ " and " ++ x], (Just fp, opts))
+  iter x (logs, (Nothing, opts))
+    | isLongOpt x = case readLongOpt x of Nothing -> (("Unrecognised long option: " ++ x):logs, (Nothing, opts))
+                                          Just opt -> (logs, (Nothing, opt:opts))
+    | isShortOpt x = case readShortOpt x of Nothing -> (("Unrecognised short option: " ++ x):logs, (Nothing, opts))
+                                            Just opt -> (logs, (Nothing, opt:opts))
+    | otherwise = (logs, (Just x, opts))
+
+isLongOpt str = "--" `isPrefixOf` str
+isShortOpt str = "-" `isPrefixOf` str && not ("--" `isPrefixOf` str)
+
+readLongOpt :: String -> Maybe Option
+readLongOpt "--verbose" = return Verbose
+readLongOpt _           = Nothing
+
+readShortOpt :: String -> Maybe Option
+readShortOpt "-v" = return Verbose
+readShortOpt _    = Nothing
+
+-- read file or stdin, do fmt (optionally using opts), report errors
+doFmt :: (Maybe FilePath, [Option]) -> IO ([Log], String)
+doFmt (maybeFP, opts) = getContentsFrom maybeFP >>= maybeFmt
+  where getContentsFrom :: Maybe FilePath -> IO String
+        getContentsFrom Nothing   = getContents
+        getContentsFrom (Just fp) = readFile fp
+
+        maybeFmt :: String -> IO ([Log], String) -- logs and res json, fmt or not
+        maybeFmt jsonStr = do (confLogs, conf) <- ioConf
+                              case fmtWithConf conf jsonStr
+                                of Left msg -> return (confLogs ++ ["Format error: " ++ msg], jsonStr)
+                                   Right fmtStr -> return (confLogs, fmtStr)
+
+        -- try to read external configurations, or use default if unsuccessful
+        ioConf :: IO ([Log], FmtConfig)
+        ioConf = do envVarRes <- lookupEnv envVarName
+                    case envVarRes of
+                      Just path -> do configFile <- readFile path
+                                      case parseConfig configFile of
+                                        Left msg -> return (["Found environment variable $" ++ envVarName ++ ", but got error while parsing config: " ++ msg, "Using default configurations"], defaultConfig)
+                                        Right conf -> return (["Using configurations from environment variable " ++ envVarName], conf)
+                      Nothing -> do maybeXDG <- lookupEnv "XDG_CONFIG_HOME"
+                                    case maybeXDG of
+                                      Just xdg -> do let xdgConfPath = xdg </> defaultConfigPathWithinXDG
+                                                     existsXDGConf <- doesFileExist xdgConfPath
+                                                     if existsXDGConf
+                                                       then do confStr <- readFile xdgConfPath
+                                                               case parseConfig confStr of
+                                                                 Left msg -> return (["Found XDG configurations but got error while parsing config: " ++ msg, "Using default configurations"], defaultConfig)
+                                                                 Right conf -> return (["Using XDG configurations"], conf)
+                                                       else return (["Found neither environment variable $" ++ envVarName ++ " nor XDG configurations, using default configurations"], defaultConfig)
+                                      Nothing -> return (["Found neither environment variable $" ++ envVarName ++ " nor $XDG_CONFIG_HOME, using default configurations"], defaultConfig)
 
   {-
-    get config from $JSONFMT_CONFIG
-      if not exist, get from $XDG_CONFIG_HOME/json-fmt/config.json
-        if $XDG_CONFIG_HOME not set or set but not a valid conf, use default while report error to stderr
-      if exist but not a valid conf, use default while report error to stderr
+    enum for all command line opts
     -}
-maybeConf :: IO (Either String FmtConfig)
-maybeConf = do maybePath <- lookupEnv envVarName
-               case maybePath of Just envPath -> do configStr <- readFile envPath
-                                                    case parseConfig configStr of Left msg -> return $ Left $ "In " ++ envVarName ++ ": " ++ msg
-                                                                                  Right conf -> return $ Right conf
-                                 Nothing -> do maybePath <- lookupEnv "XDG_CONFIG_HOME"
-                                               case maybePath of Just xdgpath -> do let fullPath = xdgpath ++ defaultConfigPath
-                                                                                    exist <- doesFileExist fullPath
-                                                                                    if exist then do configStr <- readFile fullPath
-                                                                                                     case parseConfig configStr of Left msg -> return $ Left $ "In $XDG_CONFIG_HOME" ++ defaultConfigPath ++ ": " ++ msg
-                                                                                                                                   Right conf -> return $ Right conf
-                                                                                             else return $ Left "No config file found, using default config"
-                                                                 Nothing -> return $ Left "Both $JSONFMT_CONFIG and $XDG_CONFIG_HOME not set, using default config"
+data Option = Verbose
+              deriving Eq
+
+-- decides which go to stdout and which go to stderr
+setOutputs :: (Maybe Log, String, [Option])
+           -> IO (Maybe String, String) -- to stderr, to stdout
+setOutputs (maybeLog, str, opts)
+  | Verbose `elem` opts = return (maybeLog, str)
+  | otherwise = return (Nothing, str)
+
+-- do print
+output :: (Maybe String, String) -> IO ()
+output (Nothing, out) = putStrLn out
+output (Just err, out) = do hPutStrLn stderr err
+                            putStrLn out
 
 envVarName :: String
 envVarName = "JSONFMT_CONFIG"
 
-defaultConfigPath :: String
-defaultConfigPath = "/json-fmt/config.json" -- in XDG_CONFIG_HOME
+defaultConfigPathWithinXDG :: String
+defaultConfigPathWithinXDG = "json-fmt/config.json" -- in XDG_CONFIG_HOME
 

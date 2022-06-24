@@ -1,7 +1,7 @@
 module Util where
 
-import Data.Char (isSpace)
-import Data.List (intersect)
+import           Data.Char (isSpace)
+import           Data.List (intersect)
 
 replace :: Eq a => a -> [a] -> [a] -> [a]
 replace _ _ [] = []
@@ -17,3 +17,10 @@ trimLead (x:xs)
 
 disjoint :: Eq a => [a] -> [a] -> Bool
 disjoint xs = null . intersect xs
+
+-- merge two lists and return Nothing if empty
+merge :: [a] -> [a] -> Maybe [a]
+merge [] [] = Nothing
+merge xs [] = Just xs
+merge [] xs = Just xs
+merge xs ys = Just $ xs ++ ys
