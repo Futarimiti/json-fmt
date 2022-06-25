@@ -1,20 +1,6 @@
 module FmtConfig ( FmtConfig (..)
-                 , ConfigValue (..)
                  , ValueType (..)
                  , defaultConfig
-                 , spaceNBeforeColon
-                 , spaceNAfterColon
-                 , spaceNBeforeArrayComma
-                 , spaceNAfterArrayComma
-                 , arrayPaddingSpaceN
-                 , spaceNInEmptyArr
-                 , spaceNInEmptyObj
-                 , bracePaddingSpaceN
-                 , endWithNewline
-                 , newline
-                 , oneEntryOneLine
-                 , oneElemOneLine
-                 , elemsOnSepLine
                  , parseConfig
                  )
 where
@@ -152,77 +138,52 @@ import           Util
         ]
     -}
 
-data FmtConfig = FmtConfig { spaceNBeforeColon'      :: ConfigValue
-                           , spaceNAfterColon'       :: ConfigValue
-                           , spaceNBeforeArrayComma' :: ConfigValue
-                           , spaceNAfterArrayComma'  :: ConfigValue
-                           , arrayPaddingSpaceN'     :: ConfigValue
-                           , spaceNInEmptyArr'       :: ConfigValue
-                           , spaceNInEmptyObj'       :: ConfigValue
-                           , bracePaddingSpaceN'     :: ConfigValue
-                           , endWithNewline'         :: ConfigValue
-                           , newline'                :: ConfigValue
-                           , oneEntryOneLine'        :: ConfigValue
-                           , oneElemOneLine'         :: ConfigValue
-                           , elemsOnSepLine'         :: ConfigValue
+data FmtConfig = FmtConfig { spaceNBeforeColon      :: Int
+                           , spaceNAfterColon       :: Int
+                           , spaceNBeforeArrayComma :: Int
+                           , spaceNAfterArrayComma  :: Int
+                           , arrayPaddingSpaceN     :: Int
+                           , spaceNInEmptyArr       :: Int
+                           , spaceNInEmptyObj       :: Int
+                           , bracePaddingSpaceN     :: Int
+                           , endWithNewline         :: Bool
+                           , newline                :: String
+                           , oneEntryOneLine        :: [ValueType]
+                           , oneElemOneLine         :: [ValueType]
+                           , elemsOnSepLine         :: [ValueType]
                            }
 
-data ConfigValue = ConfInt Int | ConfBool Bool | ConfStr String | ConfVTList [ValueType]
 data ValueType = Empty | Null | Bool | Number | EmptyString | NonEmptyString | FilledArray | EmptyArray | FilledObject | EmptyObject deriving (Eq, Read)
 
-defaultConfig = FmtConfig { spaceNBeforeColon' = ConfInt 1
-                          , spaceNAfterColon' = ConfInt 1
-                          , spaceNBeforeArrayComma' = ConfInt 0
-                          , spaceNAfterArrayComma' = ConfInt 1
-                          , arrayPaddingSpaceN' = ConfInt 1
-                          , spaceNInEmptyArr' = ConfInt 0
-                          , spaceNInEmptyObj' = ConfInt 0
-                          , bracePaddingSpaceN' = ConfInt 1
-                          , endWithNewline' = ConfBool True
-                          , newline' = ConfStr "\n"
-                          , oneEntryOneLine' = ConfVTList [ Empty, Null, Bool, Number, EmptyString, NonEmptyString, EmptyArray, EmptyObject ]
-                          , oneElemOneLine' = ConfVTList [ Empty, Null, Bool, Number, EmptyString, NonEmptyString, EmptyObject ]
-                          , elemsOnSepLine' = ConfVTList [ FilledObject, FilledArray ]
+defaultConfig = FmtConfig { spaceNBeforeColon = 1
+                          , spaceNAfterColon = 1
+                          , spaceNBeforeArrayComma = 0
+                          , spaceNAfterArrayComma = 1
+                          , arrayPaddingSpaceN = 1
+                          , spaceNInEmptyArr = 0
+                          , spaceNInEmptyObj = 0
+                          , bracePaddingSpaceN = 1
+                          , endWithNewline = True
+                          , newline = "\n"
+                          , oneEntryOneLine = [ Empty, Null, Bool, Number, EmptyString, NonEmptyString, EmptyArray, EmptyObject ]
+                          , oneElemOneLine = [ Empty, Null, Bool, Number, EmptyString, NonEmptyString, EmptyObject ]
+                          , elemsOnSepLine = [ FilledObject, FilledArray ]
                           }
 
--- getters ig
-spaceNBeforeColon = getInt . spaceNBeforeColon'
-spaceNAfterColon = getInt . spaceNAfterColon'
-spaceNBeforeArrayComma = getInt . spaceNBeforeArrayComma'
-spaceNAfterArrayComma = getInt . spaceNAfterArrayComma'
-arrayPaddingSpaceN = getInt . arrayPaddingSpaceN'
-spaceNInEmptyArr = getInt . spaceNInEmptyArr'
-spaceNInEmptyObj = getInt . spaceNInEmptyObj'
-bracePaddingSpaceN = getInt . bracePaddingSpaceN'
-endWithNewline = getBool . endWithNewline'
-newline = getStr . newline'
-oneEntryOneLine = getVTList . oneEntryOneLine'
-oneElemOneLine = getVTList . oneElemOneLine'
-elemsOnSepLine = getVTList . elemsOnSepLine'
-
-getInt (ConfInt n) = n
-getInt _           = undefined
-getBool (ConfBool b) = b
-getBool _            = undefined
-getStr (ConfStr s) = s
-getStr _           = undefined
-getVTList (ConfVTList l) = l
-getVTList _              = undefined
-
 maybeSetConf :: FmtConfig -> (String, JSValue) -> FmtConfig
-maybeSetConf conf ("spaceNBeforeColon", JSRational _ (n :% 1)) = conf { spaceNBeforeColon' = ConfInt $ fromInteger n }
-maybeSetConf conf ("spaceNAfterColon", JSRational _ (n :% 1)) = conf { spaceNAfterColon' = ConfInt $ fromInteger n }
-maybeSetConf conf ("spaceNBeforeArrayComma", JSRational _ (n :% 1)) = conf { spaceNBeforeArrayComma' = ConfInt $ fromInteger n }
-maybeSetConf conf ("spaceNAfterArrayComma", JSRational _ (n :% 1)) = conf { spaceNAfterArrayComma' = ConfInt $ fromInteger n }
-maybeSetConf conf ("arrayPaddingSpaceN", JSRational _ (n :% 1)) = conf { arrayPaddingSpaceN' = ConfInt $ fromInteger n }
-maybeSetConf conf ("spaceNInEmptyArr", JSRational _ (n :% 1)) = conf { spaceNInEmptyArr' = ConfInt $ fromInteger n }
-maybeSetConf conf ("spaceNInEmptyObj", JSRational _ (n :% 1)) = conf { spaceNInEmptyObj' = ConfInt $ fromInteger n }
-maybeSetConf conf ("bracePaddingSpaceN", JSRational _ (n :% 1)) = conf { bracePaddingSpaceN' = ConfInt $ fromInteger n }
-maybeSetConf conf ("endWithNewline", JSBool b) = conf { endWithNewline' = ConfBool b }
-maybeSetConf conf ("newline", JSString (JSONString str)) = conf { newline' = ConfStr str }
-maybeSetConf conf ("oneEntryOneLine", JSArray strs) = conf { oneEntryOneLine' = ConfVTList $ toVTList strs }
-maybeSetConf conf ("oneElemOneLine", JSArray strs) = conf { oneElemOneLine' = ConfVTList $ toVTList strs }
-maybeSetConf conf ("elemsOnSepLine", JSArray strs) = conf { elemsOnSepLine' = ConfVTList $ toVTList strs }
+maybeSetConf conf ("spaceNBeforeColon", JSRational _ (n :% 1)) = conf { spaceNBeforeColon = fromInteger n }
+maybeSetConf conf ("spaceNAfterColon", JSRational _ (n :% 1)) = conf { spaceNAfterColon = fromInteger n }
+maybeSetConf conf ("spaceNBeforeArrayComma", JSRational _ (n :% 1)) = conf { spaceNBeforeArrayComma = fromInteger n }
+maybeSetConf conf ("spaceNAfterArrayComma", JSRational _ (n :% 1)) = conf { spaceNAfterArrayComma = fromInteger n }
+maybeSetConf conf ("arrayPaddingSpaceN", JSRational _ (n :% 1)) = conf { arrayPaddingSpaceN = fromInteger n }
+maybeSetConf conf ("spaceNInEmptyArr", JSRational _ (n :% 1)) = conf { spaceNInEmptyArr = fromInteger n }
+maybeSetConf conf ("spaceNInEmptyObj", JSRational _ (n :% 1)) = conf { spaceNInEmptyObj = fromInteger n }
+maybeSetConf conf ("bracePaddingSpaceN", JSRational _ (n :% 1)) = conf { bracePaddingSpaceN = fromInteger n }
+maybeSetConf conf ("endWithNewline", JSBool b) = conf { endWithNewline = b }
+maybeSetConf conf ("newline", JSString (JSONString str)) = conf { newline = str }
+maybeSetConf conf ("oneEntryOneLine", JSArray strs) = conf { oneEntryOneLine = toVTList strs }
+maybeSetConf conf ("oneElemOneLine", JSArray strs) = conf { oneElemOneLine = toVTList strs }
+maybeSetConf conf ("elemsOnSepLine", JSArray strs) = conf { elemsOnSepLine = toVTList strs }
 maybeSetConf conf _ = conf  -- ignore unrecognised kvpairs
 
 -- ignore any values of invalid type or invalid ValueType
