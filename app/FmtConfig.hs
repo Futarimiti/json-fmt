@@ -170,35 +170,38 @@ defaultConfig = FmtConfig { spaceNBeforeColon = 1
                           , elemsOnSepLine = [ FilledObject, FilledArray ]
                           }
 
-maybeSetConf :: FmtConfig -> (String, JSValue) -> FmtConfig
-maybeSetConf conf ("spaceNBeforeColon", JSRational _ (n :% 1)) = conf { spaceNBeforeColon = fromInteger n }
-maybeSetConf conf ("spaceNAfterColon", JSRational _ (n :% 1)) = conf { spaceNAfterColon = fromInteger n }
-maybeSetConf conf ("spaceNBeforeArrayComma", JSRational _ (n :% 1)) = conf { spaceNBeforeArrayComma = fromInteger n }
-maybeSetConf conf ("spaceNAfterArrayComma", JSRational _ (n :% 1)) = conf { spaceNAfterArrayComma = fromInteger n }
-maybeSetConf conf ("arrayPaddingSpaceN", JSRational _ (n :% 1)) = conf { arrayPaddingSpaceN = fromInteger n }
-maybeSetConf conf ("spaceNInEmptyArr", JSRational _ (n :% 1)) = conf { spaceNInEmptyArr = fromInteger n }
-maybeSetConf conf ("spaceNInEmptyObj", JSRational _ (n :% 1)) = conf { spaceNInEmptyObj = fromInteger n }
-maybeSetConf conf ("bracePaddingSpaceN", JSRational _ (n :% 1)) = conf { bracePaddingSpaceN = fromInteger n }
-maybeSetConf conf ("endWithNewline", JSBool b) = conf { endWithNewline = b }
-maybeSetConf conf ("newline", JSString (JSONString str)) = conf { newline = str }
-maybeSetConf conf ("oneEntryOneLine", JSArray strs) = conf { oneEntryOneLine = toVTList strs }
-maybeSetConf conf ("oneElemOneLine", JSArray strs) = conf { oneElemOneLine = toVTList strs }
-maybeSetConf conf ("elemsOnSepLine", JSArray strs) = conf { elemsOnSepLine = toVTList strs }
-maybeSetConf conf _ = conf  -- ignore unrecognised kvpairs
-
--- ignore any values of invalid type or invalid ValueType
--- could make it harder to debug, maybe carry an error msg later?
-toVTList :: [JSValue] -> [ValueType]
-toVTList = foldr (\x acc -> case x of (JSString (JSONString s)) -> case readMaybe s of Just vt -> vt : acc
-                                                                                       Nothing -> acc
-                                      _ -> acc) []
-
 -- parse FmtConfig from a JSON string
 -- left: error msg; right: FmtConfig
 parseConfig :: String -> Either String FmtConfig
 parseConfig  = maybeParseConfig . decode . trimLead
   where maybeParseConfig :: Result JSValue -> Either String FmtConfig
         maybeParseConfig (Ok (JSObject (JSONObject kvpairs))) = Right $ foldl maybeSetConf defaultConfig kvpairs
-        maybeParseConfig (Error msg) = Left msg
-        maybeParseConfig _           = Left "Expecting a valid object"
+        maybeParseConfig (Ok _)                               = Left "Expecting a valid object"
+        maybeParseConfig (Error msg)                          = Left msg
+
+        maybeSetConf :: FmtConfig -> (String, JSValue) -> FmtConfig
+        maybeSetConf conf pair = case pair of
+          ("spaceNBeforeColon", JSRational _ (n :% 1))      -> conf { spaceNBeforeColon = fromInteger n }
+          ("spaceNAfterColon", JSRational _ (n :% 1))       -> conf { spaceNAfterColon = fromInteger n }
+          ("spaceNBeforeArrayComma", JSRational _ (n :% 1)) -> conf { spaceNBeforeArrayComma = fromInteger n }
+          ("spaceNAfterArrayComma", JSRational _ (n :% 1))  -> conf { spaceNAfterArrayComma = fromInteger n }
+          ("arrayPaddingSpaceN", JSRational _ (n :% 1))     -> conf { arrayPaddingSpaceN = fromInteger n }
+          ("spaceNInEmptyArr", JSRational _ (n :% 1))       -> conf { spaceNInEmptyArr = fromInteger n }
+          ("spaceNInEmptyObj", JSRational _ (n :% 1))       -> conf { spaceNInEmptyObj = fromInteger n }
+          ("bracePaddingSpaceN", JSRational _ (n :% 1))     -> conf { bracePaddingSpaceN = fromInteger n }
+          ("endWithNewline", JSBool b)                      -> conf { endWithNewline = b }
+          ("newline", JSString (JSONString str))            -> conf { newline = str }
+          ("oneEntryOneLine", JSArray strs)                 -> conf { oneEntryOneLine = toVTList strs }
+          ("oneElemOneLine", JSArray strs)                  -> conf { oneElemOneLine = toVTList strs }
+          ("elemsOnSepLine", JSArray strs)                  -> conf { elemsOnSepLine = toVTList strs }
+          _                                                 -> conf  -- ignore unrecognised kvpairs
+
+        -- ignore any values of invalid type or invalid ValueType
+        -- could make it harder to debug, maybe carry an error msg later?
+        toVTList :: [JSValue] -> [ValueType]
+        toVTList = foldr (\x acc -> case x of
+                                      (JSString (JSONString s)) -> case readMaybe s of
+                                                                     Just vt -> vt : acc
+                                                                     Nothing -> acc
+                                      _                         -> acc) []
 
