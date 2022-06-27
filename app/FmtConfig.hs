@@ -170,8 +170,6 @@ defaultConfig = FmtConfig { spaceNBeforeColon = 1
                           , elemsOnSepLine = [ FilledObject, FilledArray ]
                           }
 
-type Log = String
-
 -- parse FmtConfig from a JSON string, with logs
 parseConfigWithLogs :: String -> ([Log], FmtConfig)
 parseConfigWithLogs = maybeParseConfigWithLogs . decode . trimLead

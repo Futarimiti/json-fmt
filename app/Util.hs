@@ -3,6 +3,8 @@ module Util where
 import           Data.Char (isSpace)
 import           Data.List (intersect)
 
+type Log = String
+
 replace :: Eq a => a -> [a] -> [a] -> [a]
 replace _ _ [] = []
 replace src dest (x:xs)

@@ -15,8 +15,6 @@ import           Util
 main :: IO ()
 main = (getArgs >>= manageArgs) >>= output . setOutputs
 
-type Log = String
-
 manageArgs :: [String]
            -> IO ([Log], String, [Option]) -- logs, maybe formatted result, opts
 manageArgs args = do (fmtLogs, fmtRes) <- doFmt (maybeFP, opts)
@@ -70,7 +68,7 @@ doFmt (maybeFP, opts) = getContentsFrom maybeFP >>= maybeFmt
         ioConf = do envVarRes <- lookupEnv envVarName
                     case envVarRes of
                       Just path -> do exists <- doesFileExist path
-                                      if exists 
+                                      if exists
                                       then do configFile <- readFile path
                                               let (parseConfLogs, conf) = parseConfigWithLogs configFile
                                               return (("Using config file pointed by $" ++ envVarName):parseConfLogs, conf)
