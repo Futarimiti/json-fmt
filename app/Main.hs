@@ -2,7 +2,8 @@ module Main (main)
 where
 
 import           Data.List          (intercalate, isPrefixOf)
-import           FmtConfig          (FmtConfig, defaultConfig, parseConfig)
+import           FmtConfig          (FmtConfig, defaultConfig,
+                                     parseConfigWithLogs)
 import           Lib                (fmtDefault, fmtWithConf)
 import           System.Directory   (doesFileExist)
 import           System.Environment (getArgs, lookupEnv)
@@ -68,21 +69,22 @@ doFmt (maybeFP, opts) = getContentsFrom maybeFP >>= maybeFmt
         ioConf :: IO ([Log], FmtConfig)
         ioConf = do envVarRes <- lookupEnv envVarName
                     case envVarRes of
-                      Just path -> do configFile <- readFile path
-                                      case parseConfig configFile of
-                                        Left msg -> return (["Found environment variable $" ++ envVarName ++ ", but got error while parsing config: " ++ msg, "Using default configurations"], defaultConfig)
-                                        Right conf -> return (["Using configurations from environment variable " ++ envVarName], conf)
+                      Just path -> do exists <- doesFileExist path
+                                      if exists 
+                                      then do configFile <- readFile path
+                                              let (parseConfLogs, conf) = parseConfigWithLogs configFile
+                                              return (("Using config file pointed by $" ++ envVarName):parseConfLogs, conf)
+                                      else return (["File pointed by $" ++ envVarName ++ " does not exist, using default config"], defaultConfig)
                       Nothing -> do maybeXDG <- lookupEnv "XDG_CONFIG_HOME"
                                     case maybeXDG of
                                       Just xdg -> do let xdgConfPath = xdg </> defaultConfigPathWithinXDG
                                                      existsXDGConf <- doesFileExist xdgConfPath
                                                      if existsXDGConf
                                                        then do confStr <- readFile xdgConfPath
-                                                               case parseConfig confStr of
-                                                                 Left msg -> return (["Found XDG configurations but got error while parsing config: " ++ msg, "Using default configurations"], defaultConfig)
-                                                                 Right conf -> return (["Using XDG configurations"], conf)
-                                                       else return (["Found neither environment variable $" ++ envVarName ++ " nor XDG configurations, using default configurations"], defaultConfig)
-                                      Nothing -> return (["Found neither environment variable $" ++ envVarName ++ " nor $XDG_CONFIG_HOME, using default configurations"], defaultConfig)
+                                                               let (parseConfLogs, conf) = parseConfigWithLogs confStr
+                                                               return ("Using config file $XDG_CONFIG_HOME/json-fmt/config.json" : parseConfLogs, conf)
+                                                       else return (["Did not find any config files, using default config"], defaultConfig)
+                                      Nothing -> return (["Found neither $" ++ envVarName ++ " nor $XDG_CONFIG_HOME, using default config"], defaultConfig)
 
   {-
     enum for all command line opts
