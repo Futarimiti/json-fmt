@@ -261,7 +261,7 @@ if an array contains one or more elements with types in \[ValueType], put each e
 [ 1, 2 ]
 [ true
 , 1.0
-, { "a" = "b" }
+, { "a" : "b" }
 ]
 [ [ "elem" ]
 ]
