@@ -80,7 +80,7 @@ doFmt (maybeFP, opts) = getContentsFrom maybeFP >>= maybeFmt
                                                      if existsXDGConf
                                                        then do confStr <- readFile xdgConfPath
                                                                let (parseConfLogs, conf) = parseConfigWithLogs confStr
-                                                               return ("Using config file $XDG_CONFIG_HOME/json-fmt/config.json" : parseConfLogs, conf)
+                                                               return (("Using config file " ++ ("$XDG_CONFIG_HOME" </> defaultConfigPathWithinXDG)) : parseConfLogs, conf)
                                                        else return (["Did not find any config files, using default config"], defaultConfig)
                                       Nothing -> return (["Found neither $" ++ envVarName ++ " nor $XDG_CONFIG_HOME, using default config"], defaultConfig)
 
