@@ -198,6 +198,19 @@ defines style of newline, usually either "\n" or "\n\r".
 
 enclosing every object containing only one entry of ValueType type on the same line as the opening.
 
+Definition of `ValueType`:
+
+```hs
+data ValueType = Empty | Null | Bool | Number | EmptyString | NonEmptyString | FilledArray | EmptyArray | FilledObject | EmptyObject
+```
+
+Inside the configuration file, use an array of strings to represent a list of value types, e.g.:
+
+```json
+{ "oneEntryOneLine" : [ "Empty", "Null", "Bool", "Number", "EmptyString" ]
+}
+```
+
 `oneEntryOneLine = [Empty, Null, Bool, Number, EmptyString, NonEmptyString, EmptyArray, EmptyObject]`
 
 ```json
