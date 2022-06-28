@@ -207,5 +207,5 @@ parseConfigWithLogs = maybeParseConfigWithLogs . decode . trimLead
         toVTListWithLogs = foldr (\x (logs, vts) -> case x of
           (JSString (JSONString s)) -> case readMaybe s of
                                          Just vt -> (logs, vt:vts)
-                                         Nothing -> (("Unrecognised value type: " ++ s):logs, vts)
-          _ -> (("Expecting a string but got " ++ show x):logs, vts)) ([], [])
+                                         Nothing -> (("Unrecognised value type: \"" ++ s ++ "\""):logs, vts)
+          _                         -> (("Expecting a string but got " ++ show x):logs, vts)) ([], [])
