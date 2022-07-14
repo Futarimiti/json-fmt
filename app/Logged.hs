@@ -2,8 +2,11 @@ module Logged where
 
 import           Control.Applicative (liftA2)
 
-data Logged a = Logged [Log] a
-  deriving (Show, Read)
+type Log = String
+
+data Logged a = Logged { getLogs :: [Log]
+                       , getVal  :: a
+                       } deriving (Show, Read)
 
 instance Eq a => Eq (Logged a) where
   (Logged _ a) == (Logged _ b) = a == b
@@ -24,3 +27,9 @@ instance Semigroup a => Semigroup (Logged a) where
 
 instance Monoid a => Monoid (Logged a) where
   mempty = pure mempty
+
+log :: Log -> Logged a -> Logged a
+log msg (Logged logs a) = Logged (msg : logs) a
+
+logs :: [Log] -> Logged a -> Logged a
+logs msgs (Logged logs a) = Logged (msgs ++ logs) a
