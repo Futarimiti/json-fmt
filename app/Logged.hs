@@ -29,7 +29,7 @@ instance Monoid a => Monoid (Logged a) where
   mempty = pure mempty
 
 log :: Log -> Logged a -> Logged a
-log msg (Logged logs a) = Logged (msg : logs) a
+log msg (Logged logs a) = Logged (logs ++ [msg]) a
 
 logs :: [Log] -> Logged a -> Logged a
-logs msgs (Logged logs a) = Logged (msgs ++ logs) a
+logs msgs (Logged logs a) = Logged (logs ++ msgs) a
