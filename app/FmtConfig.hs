@@ -1,12 +1,14 @@
 module FmtConfig ( FmtConfig (..)
                  , ValueType (..)
                  , defaultConfig
-                 , parseConfigWithLogs
+                 , parseConfigLogged
                  )
 where
 
 import           Data.Char       (isSpace)
 import           GHC.Real        (Ratio ((:%)))
+import           Logged
+import           Prelude         hiding (log)
 import           Text.JSON       (JSValue (..), Result (Error, Ok), decode)
 import           Text.JSON.Types (JSObject (JSONObject), JSString (JSONString))
 import           Text.Read       (readMaybe)
@@ -45,41 +47,39 @@ defaultConfig = FmtConfig { spaceNBeforeColon = 1
                           }
 
 -- parse FmtConfig from a JSON string, with logs
-parseConfigWithLogs :: String -> ([Log], FmtConfig)
-parseConfigWithLogs = maybeParseConfigWithLogs . decode . trimLead
-  where -- parse FmtConfig based on the json and defaultConfig
-        -- an Error result will result in defaultConfig being used
-        maybeParseConfigWithLogs :: Result JSValue -> ([Log], FmtConfig)
-        maybeParseConfigWithLogs (Error msg) = ([msg], defaultConfig)
-        maybeParseConfigWithLogs (Ok (JSObject (JSONObject kvpairs))) = foldl iter ([], defaultConfig) kvpairs
-          where iter :: ([Log], FmtConfig) -> (String, JSValue) -> ([Log], FmtConfig)
-                iter (logs, conf) pair = (logs ++ setConfLogs, newConf)
-                  where (setConfLogs, newConf) = maybeSetConfWithLogs conf pair
-        maybeParseConfigWithLogs (Ok x) = (["Expecting a json object but got " ++ show x], defaultConfig)
+parseConfigLogged :: String -> Logged FmtConfig
+parseConfigLogged = maybeParseConfigLogged . decode . trimLead
+  where maybeParseConfigLogged :: Result JSValue -> Logged FmtConfig
+        maybeParseConfigLogged (Error msg) = Logged [msg] defaultConfig
+        maybeParseConfigLogged (Ok (JSObject (JSONObject kvpairs))) = foldl iter (Logged [] defaultConfig) kvpairs
+          where iter :: Logged FmtConfig -> (String, JSValue) -> Logged FmtConfig
+                iter (Logged logs conf) pair = Logged (logs ++ setConfLogs) newConf
+                  where Logged setConfLogs newConf = maybeSetConfLogged conf pair
+        maybeParseConfigLogged (Ok x) = Logged ["Expecting a json object but got " ++ show x] defaultConfig
 
-        maybeSetConfWithLogs :: FmtConfig -> (String, JSValue) -> ([Log], FmtConfig)
-        maybeSetConfWithLogs conf pair = case pair of
-          ("spaceNBeforeColon", JSRational _ (n :% 1))      -> ([], conf { spaceNBeforeColon = fromInteger n })
-          ("spaceNAfterColon", JSRational _ (n :% 1))       -> ([], conf { spaceNAfterColon = fromInteger n })
-          ("spaceNBeforeArrayComma", JSRational _ (n :% 1)) -> ([], conf { spaceNBeforeArrayComma = fromInteger n })
-          ("spaceNAfterArrayComma", JSRational _ (n :% 1))  -> ([], conf { spaceNAfterArrayComma = fromInteger n })
-          ("arrayPaddingSpaceN", JSRational _ (n :% 1))     -> ([], conf { arrayPaddingSpaceN = fromInteger n })
-          ("spaceNInEmptyArr", JSRational _ (n :% 1))       -> ([], conf { spaceNInEmptyArr = fromInteger n })
-          ("spaceNInEmptyObj", JSRational _ (n :% 1))       -> ([], conf { spaceNInEmptyObj = fromInteger n })
-          ("bracePaddingSpaceN", JSRational _ (n :% 1))     -> ([], conf { bracePaddingSpaceN = fromInteger n })
-          ("endWithNewline", JSBool b)                      -> ([], conf { endWithNewline = b })
-          ("newline", JSString (JSONString str))            -> ([], conf { newline = str })
-          ("oneEntryOneLine", JSArray strs)                 -> (logs, conf { oneEntryOneLine = vtList })
-            where (logs, vtList) = toVTListWithLogs strs
-          ("oneElemOneLine", JSArray strs)                  -> (logs, conf { oneElemOneLine = vtList })
-            where (logs, vtList) = toVTListWithLogs strs
-          ("elemsOnSepLine", JSArray strs)                  -> (logs, conf { elemsOnSepLine = vtList })
-            where (logs, vtList) = toVTListWithLogs strs
-          (str, jsv) -> (["Unrecognised option, or unexpected type: (\"" ++ str ++ "\", " ++ show jsv ++ ")"], conf)
+        maybeSetConfLogged :: FmtConfig -> (String, JSValue) -> Logged FmtConfig
+        maybeSetConfLogged conf pair = case pair of
+          ("spaceNBeforeColon", JSRational _ (n :% 1))      -> pure conf { spaceNBeforeColon = fromInteger n }
+          ("spaceNAfterColon", JSRational _ (n :% 1))       -> pure conf { spaceNAfterColon = fromInteger n }
+          ("spaceNBeforeArrayComma", JSRational _ (n :% 1)) -> pure conf { spaceNBeforeArrayComma = fromInteger n }
+          ("spaceNAfterArrayComma", JSRational _ (n :% 1))  -> pure conf { spaceNAfterArrayComma = fromInteger n }
+          ("arrayPaddingSpaceN", JSRational _ (n :% 1))     -> pure conf { arrayPaddingSpaceN = fromInteger n }
+          ("spaceNInEmptyArr", JSRational _ (n :% 1))       -> pure conf { spaceNInEmptyArr = fromInteger n }
+          ("spaceNInEmptyObj", JSRational _ (n :% 1))       -> pure conf { spaceNInEmptyObj = fromInteger n }
+          ("bracePaddingSpaceN", JSRational _ (n :% 1))     -> pure conf { bracePaddingSpaceN = fromInteger n }
+          ("endWithNewline", JSBool b)                      -> pure conf { endWithNewline = b }
+          ("newline", JSString (JSONString str))            -> pure conf { newline = str }
+          ("oneEntryOneLine", JSArray strs)                 -> Logged logs conf { oneEntryOneLine = vts }
+            where Logged logs vts = toVTListLogged strs
+          ("oneElemOneLine", JSArray strs)                  -> Logged logs conf { oneElemOneLine = vts }
+            where Logged logs vts = toVTListLogged strs
+          ("elemsOnSepLine", JSArray strs)                  -> Logged logs conf { elemsOnSepLine = vts }
+            where Logged logs vts = toVTListLogged strs
+          (str, jsv) -> Logged ["Unrecognised option, or unexpected type: (\"" ++ str ++ "\", " ++ show jsv ++ ")"] conf
 
-        toVTListWithLogs :: [JSValue] -> ([Log], [ValueType])
-        toVTListWithLogs = foldr (\x (logs, vts) -> case x of
+        toVTListLogged :: [JSValue] -> Logged [ValueType]
+        toVTListLogged = foldr (\x acc@(Logged logs vts) -> case x of
           (JSString (JSONString s)) -> case readMaybe s of
-                                         Just vt -> (logs, vt:vts)
-                                         Nothing -> (("Unrecognised value type: \"" ++ s ++ "\""):logs, vts)
-          _                         -> (("Expecting a string but got " ++ show x):logs, vts)) ([], [])
+                                         Just vt -> (vt:) <$> acc
+                                         Nothing -> log ("Unrecognised value type: \"" ++ s ++ "\"") acc
+          _ -> log ("Expecting a string but got " ++ show x) acc) (Logged [] [])
