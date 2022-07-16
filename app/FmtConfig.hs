@@ -1,7 +1,7 @@
 module FmtConfig ( FmtConfig (..)
                  , ValueType (..)
                  , defaultConfig
-                 , parseConfigLogged
+                 , parseConfig
                  )
 where
 
@@ -47,18 +47,17 @@ defaultConfig = FmtConfig { spaceNBeforeColon = 1
                           }
 
 -- parse FmtConfig from a JSON string, with logs
-parseConfigLogged :: String -> Logged FmtConfig
-parseConfigLogged = maybeParseConfigLogged . decode . trimLead
-  where maybeParseConfigLogged :: Result JSValue -> Logged FmtConfig
-        maybeParseConfigLogged (Error msg) = Logged [msg] defaultConfig
-        maybeParseConfigLogged (Ok (JSObject (JSONObject kvpairs))) = foldl iter (Logged [] defaultConfig) kvpairs
+parseConfig :: String -> Logged FmtConfig
+parseConfig = maybeParseConfig . decode . trimLead
+  where maybeParseConfig :: Result JSValue -> Logged FmtConfig
+        maybeParseConfig (Error msg) = Logged [msg] defaultConfig
+        maybeParseConfig (Ok (JSObject (JSONObject kvpairs))) = foldl iter (Logged [] defaultConfig) kvpairs
           where iter :: Logged FmtConfig -> (String, JSValue) -> Logged FmtConfig
-                iter (Logged logs conf) pair = Logged (logs ++ setConfLogs) newConf
-                  where Logged setConfLogs newConf = maybeSetConfLogged conf pair
-        maybeParseConfigLogged (Ok x) = Logged ["Expecting a json object but got " ++ show x] defaultConfig
+                iter (Logged logs' conf) pair = logs logs' $ maybeSetConfig conf pair
+        maybeParseConfig (Ok x) = Logged ["Expecting a json object but got " ++ show x] defaultConfig
 
-        maybeSetConfLogged :: FmtConfig -> (String, JSValue) -> Logged FmtConfig
-        maybeSetConfLogged conf pair = case pair of
+        maybeSetConfig :: FmtConfig -> (String, JSValue) -> Logged FmtConfig
+        maybeSetConfig conf pair = case pair of
           ("spaceNBeforeColon", JSRational _ (n :% 1))      -> pure conf { spaceNBeforeColon = fromInteger n }
           ("spaceNAfterColon", JSRational _ (n :% 1))       -> pure conf { spaceNAfterColon = fromInteger n }
           ("spaceNBeforeArrayComma", JSRational _ (n :% 1)) -> pure conf { spaceNBeforeArrayComma = fromInteger n }
@@ -78,8 +77,8 @@ parseConfigLogged = maybeParseConfigLogged . decode . trimLead
           (str, jsv) -> Logged ["Unrecognised option, or unexpected type: (\"" ++ str ++ "\", " ++ show jsv ++ ")"] conf
 
         toVTListLogged :: [JSValue] -> Logged [ValueType]
-        toVTListLogged = foldr (\x acc@(Logged logs vts) -> case x of
+        toVTListLogged = foldr (\x acc -> case x of
           (JSString (JSONString s)) -> case readMaybe s of
                                          Just vt -> (vt:) <$> acc
                                          Nothing -> log ("Unrecognised value type: \"" ++ s ++ "\"") acc
-          _ -> log ("Expecting a string but got " ++ show x) acc) (Logged [] [])
+          _                         -> log ("Expecting a string but got " ++ show x) acc) (Logged [] [])
