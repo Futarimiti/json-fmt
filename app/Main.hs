@@ -9,7 +9,7 @@ import           Prelude            hiding (log)
 import           System.Directory   (doesFileExist)
 import           System.Environment (getArgs, lookupEnv)
 import           System.FilePath    ((</>))
-import           System.IO          (stderr, stdin, hPutStrLn)
+import           System.IO          (hPutStrLn, stderr, stdin)
 import           Util
 
 main :: IO ()

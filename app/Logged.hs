@@ -15,7 +15,7 @@ instance Functor Logged where
   fmap f (Logged logs a) = Logged logs $ f a
 
 instance Applicative Logged where
-  pure a = Logged [] a
+  pure = Logged []
   liftA2 f (Logged logs1 a) (Logged logs2 b) = Logged (logs1 ++ logs2) $ f a b
 
 instance Monad Logged where
