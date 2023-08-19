@@ -1,35 +1,20 @@
+{-# LANGUAGE PatternSynonyms #-}
+
 module Logged where
 
-import           Control.Applicative (liftA2)
+import           Control.Applicative        (liftA2)
+import           Control.Monad.Trans.Writer (Writer, WriterT (..), tell)
+import           Data.Functor.Identity      (Identity (..))
 
 type Log = String
 
-data Logged a = Logged { getLogs :: [Log]
-                       , getVal  :: a
-                       } deriving (Show, Read)
+type Logged a = Writer [String] a
 
-instance Eq a => Eq (Logged a) where
-  (Logged _ a) == (Logged _ b) = a == b
-
-instance Functor Logged where
-  fmap f (Logged logs a) = Logged logs $ f a
-
-instance Applicative Logged where
-  pure = Logged []
-  liftA2 f (Logged logs1 a) (Logged logs2 b) = Logged (logs1 ++ logs2) $ f a b
-
-instance Monad Logged where
-  (Logged logs a) >>= f = Logged (logs ++ newLogs) fa
-    where (Logged newLogs fa) = f a
-
-instance Semigroup a => Semigroup (Logged a) where
-  (Logged logs1 a) <> (Logged logs2 b) = Logged (logs1 ++ logs2) (a <> b)
-
-instance Monoid a => Monoid (Logged a) where
-  mempty = pure mempty
+pattern Logged :: w -> a -> Writer w a
+pattern Logged w a = WriterT (Identity (a, w))
 
 log :: Log -> Logged a -> Logged a
-log msg (Logged logs a) = Logged (logs ++ [msg]) a
+log = (>>) . tell . pure
 
 logs :: [Log] -> Logged a -> Logged a
 logs msgs (Logged logs a) = Logged (logs ++ msgs) a
