@@ -68,10 +68,10 @@ parsePathOptsLogged = foldr iter $ Logged [] (Nothing, [])
                                                   Just opt -> (Just fp, opt:opts) <$ acc
           | otherwise = log ("Multiple file paths: " ++ fp ++ " and " ++ x) acc
         iter x acc@(Logged logs (Nothing, opts))
-          | isLongOpt x = case readLongOpt x of Nothing -> log ("Unrecognised long option: " ++ x) acc
-                                                Just opt -> (Nothing, opt:opts) <$ acc
-          | isShortOpt x = case readShortOpt x of Nothing -> log ("Unrecognised short option: " ++ x) acc
-                                                  Just opt -> (Nothing, opt:opts) <$ acc
+          | isLongOpt x, Just opt <- readLongOpt x = (Nothing, opt:opts) <$ acc
+          | isLongOpt x = log ("Unrecognised long option: " ++ x) acc
+          | isShortOpt x, Just opt <- readShortOpt x = (Nothing, opt:opts) <$ acc
+          | isShortOpt x = log ("Unrecognised short option: " ++ x) acc
           | otherwise = Logged logs (Just x, opts)
 
         isLongOpt str = "--" `isPrefixOf` str
