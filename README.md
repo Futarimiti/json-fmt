@@ -20,52 +20,74 @@
 }
 ```
 
-Formatted using default configurations
+### From the author
 
-### Why?
-
-Searched through loads of JSON formatters without finding single one supporting comma-leading style so I wrote this
+Years ago there was no comma-leading JSON formatter
+and I ground my teeth and wrote this toy in like 3 days;
+Copilot was not a thing yet.
+You can tell my immaturity just look at the r/programmerhorror code quality.
+(em actually I barely see any haskell there
+I guess it's more difficult to be inelegant in haskell)
+I'm still active now in 2024, so anything wrong just go open an issue or a PR—you know the flow.
+Though I would indeed take some time to understand my spaghetti to get back on track.
+Some time in the future may I carry out a refactor
+or more realistically some better tool will come out and
+I'll just put a "GO USE \[insert repo here] INSTEAD" banner here.
+But before that, hope you could at least have some good experience with my creation.
 
 ### Install
 
-To install and use:
+[Cabal](https://www.haskell.org/cabal/) is required. Stack should also work I think
 
-1.  `git clone` this repo
-2.  Within `json-fmt/`, run `cabal install`; get [Cabal](https://cabal.readthedocs.io/en/3.6/) if you don't have one
-3.  `~/.cabal/bin/json-fmt` should've been generated as an executable; if you haven't, I suggest adding `~/.cabal/bin/` to `$PATH`
-4.  `json-fmt` accepts input json from either a file or stdin; I put a `sample.json` for testing:
-    ```txt
-    json-fmt sample/sample.json
-    ```
-    The formatted result, successful or not, should go to stdout.
+```sh
+git clone 'https://github.com/Futarimiti/json-fmt'
+cd json-fmt
+cabal install
+```
 
-`json-fmt` expects valid JSON input, and will not attempt to format inputs detected to be invalid.
+There's a messy JSON sample for you to try out:
 
-### Command-line args
+```sh
+json-fmt sample/sample.json
+```
 
-`json-fmt` reads JSON input from stdin
+### Usage
 
-`json-fmt sample.json` reads JSON input from `sample.json`
+| Command           | Description                     |
+|-------------------|---------------------------------|
+| `json-fmt`        | Format JSON input from stdin    |
+| `json-fmt <FILE>` | Format JSON input from `<FILE>` |
+
+Valid JSON input is expected.
+Regardless of success or failure, the formatted result will be printed to stdout.
+Unless `-v` flag is used, no other output (errors, logs) will be printed.
 
 #### Flags
 
-`-v` verbose
+| Flag | Description |
+|------|-------------|
+| `-v` | verbose     |
+
+Sorry, I didn't know optparse was a thing back then.
 
 ### Configuration
 
-`json-fmt` first try to read json file at environment variable `$JSONFMT_CONFIG`;
-if not found, `json-fmt` will look for `$XDG_CONFIG_HOME/json-fmt/config.json`;
-if invalid and configurations failed to be parsed, the default configurations will be used.
+In order, `json-fmt` will look for configurations from:
+* `$JSONFMT_CONFIG`
+* `$XDG_CONFIG_HOME/json-fmt/config.json`
 
-The config file must be an object, containing any number of key-value pairs defining each option of the config;
-default values will be used for any absent options.
-`default-config.json` containing the default configurations is provided for reference/template use.
+The config file must be a JSON object containing key-value pairs defining each option;
+defaults will be used for any absent options.
+See `default-config.json` for reference.
 
-Meanings of all options:
+Upon failure to find or parse configurations, default configuration will be used.
+Again see `default-config.json` for reference.
+
+Options:
 
 #### `spaceNBeforeColon, spaceNAfterColon :: Int`
 
-defines number of spaces before and after a key-value separating colon.
+number of spaces before and after a key-value separating colon.
 
 `spaceNBeforeColon = 1, spaceNAfterColon = 1`
 
@@ -81,7 +103,7 @@ defines number of spaces before and after a key-value separating colon.
 
 #### `spaceNBeforeArrayComma, spaceNAfterArrayComma :: Int`
 
-defines number of spaces before and after a comma in a one-line array.
+number of spaces before and after a comma in a one-line array.
 does not affect those in multiline (see below)
 
 `spaceNBeforeArrayComma = 0, spaceNAfterArrayComma = 1`
@@ -98,7 +120,7 @@ does not affect those in multiline (see below)
 
 #### `arrayPaddingSpaceN :: Int`
 
-defines number of spaces used as paddings for a non-empty array;
+number of spaces used as paddings for a non-empty array;
 also affects number of spaces after every entry-separating comma, if multilined.
 
 `arrayPaddingSpaceN = 1`
@@ -124,7 +146,7 @@ also affects number of spaces after every entry-separating comma, if multilined.
 
 #### `spaceNInEmptyArr :: Int`
 
-defines number of spaces within an empty array.
+number of spaces within an empty array.
 
 `spaceNInEmptyArr = 0`
 
@@ -140,7 +162,7 @@ defines number of spaces within an empty array.
 
 #### `spaceNInEmptyObj :: Int`
 
-defines number of spaces within an empty obj.
+number of spaces within an empty obj.
 
 `spaceNInEmptyObj = 0`
 
@@ -156,7 +178,7 @@ defines number of spaces within an empty obj.
 
 #### `bracePaddingSpaceN :: Int`
 
-defines number of spaces used as paddings for a non-empty object;
+number of spaces used as paddings for a non-empty object;
 also affects number of spaces after every entry-separating comma.
 
 `bracePaddingSpaceN = 1`
@@ -188,11 +210,11 @@ also affects number of spaces after every entry-separating comma.
 
 #### `endWithNewline :: Bool`
 
-when True, leaves an empty line at the end of document.
+leaves an empty line at the end of document when true.
 
 #### `newline :: String`
 
-defines style of newline, usually either "\n" or "\n\r".
+style of newline, usually either "\n" or "\n\r".
 
 #### `oneEntryOneLine :: [ValueType]`
 
@@ -282,8 +304,7 @@ if an array contains one or more elements with types in \[ValueType], put each e
 
 ### Vim integration
 
-Add to ftplugin file for JSON:
-
 ```vim
+" ~/.vim/after/ftplugin/json.vim
 setlocal formatprg=json-fmt
 ```
