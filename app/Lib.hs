@@ -1,5 +1,4 @@
-module Lib (fmtDefault, fmtWithConf)
-where
+module Lib (fmtDefault, fmtWithConf) where
 
 import           Data.List       (intercalate)
 import           FmtConfig

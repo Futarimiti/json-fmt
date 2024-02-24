@@ -10,10 +10,7 @@ replace src dest (x:xs)
   | otherwise = x : replace src dest xs
 
 trimLead :: String -> String
-trimLead "" = ""
-trimLead (x:xs)
-  | isSpace x = trimLead xs
-  | otherwise = x:xs
+trimLead = dropWhile isSpace
 
 disjoint :: Eq a => [a] -> [a] -> Bool
 disjoint xs = null . intersect xs
