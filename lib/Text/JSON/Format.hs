@@ -1,6 +1,6 @@
 module Text.JSON.Format (module Text.JSON.Format.Config, format) where
 
-import           Control.Lens              (_tail, view, (%~))
+import           Control.Lens              (view)
 import           Control.Monad.Except      (ExceptT, MonadError (..))
 import           Control.Monad.Reader      (ReaderT, asks)
 import qualified Data.Aeson                as Aeson
@@ -9,14 +9,14 @@ import           Data.Aeson.KeyMap         (KeyMap)
 import qualified Data.Aeson.KeyMap         as KeyMap
 import           Data.ByteString           (ByteString)
 import qualified Data.ByteString.Char8     as BS8
-import           Data.Function             ((&))
 import           Data.Vector               (Vector)
 import qualified Data.Vector               as Vec
-import           Prettyprinter             (braces, brackets, colon, comma,
-                                            hardline, lbrace, lbracket, line,
-                                            rbrace, rbracket, vsep)
+import           Prettyprinter             (Doc, Pretty (..), braces, brackets,
+                                            colon, comma, hardline, lbrace,
+                                            lbracket, line, rbrace, rbracket,
+                                            vsep)
 import qualified Prettyprinter             as PP
-import           Prettyprinter.Combinators
+import           Prettyprinter.Combinators (ppByteStringLazy)
 import           Text.JSON.Format.Config
 
 format :: Monad m => ByteString -> ReaderT Config (ExceptT String m) ByteString
@@ -104,8 +104,7 @@ ppEntries :: Monad m => KeyMap Aeson.Value -> ReaderT Config m (Doc ann)
 ppEntries keymap = do entriesDocs <- KeyMap.traverseWithKey ppEntry keymap
                       pad <- objPadding
                       let list = map snd $ KeyMap.toList entriesDocs  -- NOTE: unstable order, could be broken later
-                      let addedComma = list & _tail . traverse %~ (\entry -> comma <> pad <> entry)
-                      pure $ vsep addedComma
+                      pure $ mconcat $ PP.punctuate (line <> comma <> pad) list
 
 -- -*- ARRAY PRETTYPRINTERS -*-
 
