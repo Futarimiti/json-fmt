@@ -20,24 +20,30 @@
 }
 ```
 
-### From the author
+<!-- ### From the author -->
 
-Years ago there was no comma-leading JSON formatter
-and I ground my teeth and wrote this toy in like 3 days;
-Copilot was not a thing yet.
-You can tell my immaturity just look at the r/programmerhorror code quality.
-(em actually I barely see any haskell there
-I guess it's more difficult to be inelegant in haskell)
-I'm still active now in 2024, so anything wrong just go open an issue or a PR—you know the flow.
-Though I would indeed take some time to understand my spaghetti to get back on track.
-Some time in the future may I carry out a refactor
-or more realistically some better tool will come out and
-I'll just put a "GO USE \[insert repo here] INSTEAD" banner here.
-But before that, hope you could at least have some good experience with my creation.
+<!-- Years ago there was no comma-leading JSON formatter -->
+<!-- and I ground my teeth and wrote this toy in like 3 days; -->
+<!-- Copilot was not a thing yet. -->
+<!-- You can tell my immaturity just look at the r/programmerhorror code quality. -->
+<!-- (em actually I barely see any haskell there -->
+<!-- I guess it's more difficult to be inelegant in haskell) -->
+<!-- I'm still active now in 2024, so anything wrong just go open an issue or a PR—you know the flow. -->
+<!-- Though I would indeed take some time to understand my spaghetti to get back on track. -->
+<!-- Some time in the future may I carry out a refactor -->
+<!-- or more realistically some better tool will come out and -->
+<!-- I'll just put a "GO USE \[insert repo here] INSTEAD" banner here. -->
+<!-- But before that, hope you could at least have some good experience with my creation. -->
+
+This branch is a rewrite of the original spaghetti,
+notably specialised libraries are used instead of concatenating strings.
+Lots of breaking changes happened.
+You should be fine if you are new to this project,
+otherwise do not casually migrate; read the updated doc below.
 
 ### Install
 
-[Cabal](https://www.haskell.org/cabal/) is required. Stack should also work I think
+[Cabal](https://www.haskell.org/cabal/) is required. Stack should also do
 
 ```sh
 git clone 'https://github.com/Futarimiti/json-fmt'
@@ -45,10 +51,10 @@ cd json-fmt
 cabal install
 ```
 
-There's a messy JSON sample for you to try out:
+There's a messy JSON [sample](resources/sample.json) for you to try out:
 
 ```sh
-json-fmt sample/sample.json
+json-fmt resources/sample.json
 ```
 
 ### Usage
@@ -59,16 +65,15 @@ json-fmt sample/sample.json
 | `json-fmt <FILE>` | Format JSON input from `<FILE>` |
 
 Valid JSON input is expected.
-Regardless of success or failure, the formatted result will be printed to stdout.
-Unless `-v` flag is used, no other output (errors, logs) will be printed.
+Formatted result will be printed to stdout upon successful parse and formatting,
+otherwise error message will be printed to stderr.
+Unless `-v` specified, no other output (errors, logs) will be printed.
 
 #### Flags
 
 | Flag | Description |
 |------|-------------|
 | `-v` | verbose     |
-
-Sorry, I didn't know optparse was a thing back then.
 
 ### Configuration
 
@@ -78,10 +83,9 @@ In order, `json-fmt` will look for configurations from:
 
 The config file must be a JSON object containing key-value pairs defining each option;
 defaults will be used for any absent options.
-See `default-config.json` for reference.
-
+See [`resources/default-config.json`](resources/default-config.json) for reference.
 Upon failure to find or parse configurations, default configuration will be used.
-Again see `default-config.json` for reference.
+Whenever in doubt, use `-v` to find out which paths have been searched.
 
 Options:
 
@@ -101,29 +105,29 @@ number of spaces before and after a key-value separating colon.
 { "key": "value" }
 ```
 
-#### `spaceNBeforeArrayComma, spaceNAfterArrayComma :: Int`
+#### `spaceNBeforeArrComma, spaceNAfterArrComma :: Int`
 
 number of spaces before and after a comma in a one-line array.
 does not affect those in multiline (see below)
 
-`spaceNBeforeArrayComma = 0, spaceNAfterArrayComma = 1`
+`spaceNBeforeArrComma = 0, spaceNAfterArrComma = 1`
 
 ```json
 [1, 2, 3]
 ```
 
-`spaceNBeforeArrayComma = 1, spaceNAfterArrayComma = 1`
+`spaceNBeforeArrComma = 1, spaceNAfterArrComma = 1`
 
 ```json
 [1 , 2 , 3]
 ```
 
-#### `arrayPaddingSpaceN :: Int`
+#### `arrPaddingSpaceN :: Int`
 
 number of spaces used as paddings for a non-empty array;
 also affects number of spaces after every entry-separating comma, if multilined.
 
-`arrayPaddingSpaceN = 1`
+`arrPaddingSpaceN = 1`
 
 ```json
 [ 1, 2, 3 ]
@@ -134,7 +138,7 @@ also affects number of spaces after every entry-separating comma, if multilined.
 ]
 ```
 
-`arrayPaddingSpaceN = 2`
+`arrPaddingSpaceN = 2`
 
 ```json
 [  1, 2, 3  ]
@@ -176,12 +180,12 @@ number of spaces within an empty obj.
 {  }
 ```
 
-#### `bracePaddingSpaceN :: Int`
+#### `objPaddingSpaceN :: Int`
 
 number of spaces used as paddings for a non-empty object;
 also affects number of spaces after every entry-separating comma.
 
-`bracePaddingSpaceN = 1`
+`objPaddingSpaceN = 1`
 
 ```json
 { "key" : "val"
@@ -190,7 +194,7 @@ also affects number of spaces after every entry-separating comma.
 { "key" : "val" }
 ```
 
-`bracePaddingSpaceN = 0`
+`objPaddingSpaceN = 0`
 
 ```json
 {"key" : "val"
@@ -199,7 +203,7 @@ also affects number of spaces after every entry-separating comma.
 {"key" : "val"}
 ```
 
-`bracePaddingSpaceN = 6`
+`objPaddingSpaceN = 6`
 
 ```json
 {      "key" : "val"
@@ -211,10 +215,6 @@ also affects number of spaces after every entry-separating comma.
 #### `endWithNewline :: Bool`
 
 leaves an empty line at the end of document when true.
-
-#### `newline :: String`
-
-style of newline, usually either "\n" or "\n\r".
 
 #### `oneEntryOneLine :: [ValueType]`
 

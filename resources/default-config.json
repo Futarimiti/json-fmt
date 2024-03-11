@@ -1,0 +1,14 @@
+{ "spaceNBeforeColon": 0
+, "spaceNAfterColon": 1
+, "spaceNBeforeArrComma": 0
+, "spaceNAfterArrComma": 1
+, "arrPaddingSpaceN": 1
+, "spaceNInEmptyArr": 0
+, "spaceNInEmptyObj": 0
+, "objPaddingSpaceN": 1
+, "endWithNewline": true
+, "oneEntryOneLine": [ "Empty", "Null", "Bool", "Number", "EmptyString", "NonEmptyString", "EmptyArray", "EmptyObject" ]
+, "oneElemOneLine": [ "Empty", "Null", "Bool", "Number", "EmptyString", "NonEmptyString", "EmptyObject" ]
+, "elemsOnSepLine": [ "FilledObject", "FilledArray" ]
+}
+
