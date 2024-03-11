@@ -12,7 +12,6 @@ category:        JSON
 build-type:      Simple
 extra-doc-files: README.md
 data-dir:        resources
-data-files:      resources/sample.json
 
 common warnings
   ghc-options: -Wall -Wmonomorphism-restriction
