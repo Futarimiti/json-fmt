@@ -302,6 +302,12 @@ if an array contains one or more elements with types in \[ValueType], put each e
 ]
 ```
 
+### Bugs/features
+
+* Fields within an object will be ordered alphabetically.
+  Normally there should be an option for that
+  but I can't yet find a way to parse JSON with field order preserved with Aeson.
+
 ### Vim integration
 
 ```vim
