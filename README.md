@@ -20,21 +20,6 @@
 }
 ```
 
-<!-- ### From the author -->
-
-<!-- Years ago there was no comma-leading JSON formatter -->
-<!-- and I ground my teeth and wrote this toy in like 3 days; -->
-<!-- Copilot was not a thing yet. -->
-<!-- You can tell my immaturity just look at the r/programmerhorror code quality. -->
-<!-- (em actually I barely see any haskell there -->
-<!-- I guess it's more difficult to be inelegant in haskell) -->
-<!-- I'm still active now in 2024, so anything wrong just go open an issue or a PR—you know the flow. -->
-<!-- Though I would indeed take some time to understand my spaghetti to get back on track. -->
-<!-- Some time in the future may I carry out a refactor -->
-<!-- or more realistically some better tool will come out and -->
-<!-- I'll just put a "GO USE \[insert repo here] INSTEAD" banner here. -->
-<!-- But before that, hope you could at least have some good experience with my creation. -->
-
 This branch is a rewrite of the original spaghetti,
 notably specialised libraries are used instead of concatenating strings.
 Lots of breaking changes happened.
@@ -78,8 +63,9 @@ Unless `-v` specified, no other output (errors, logs) will be printed.
 ### Configuration
 
 In order, `json-fmt` will look for configurations from:
-* `$JSONFMT_CONFIG`
-* `$XDG_CONFIG_HOME/json-fmt/config.json`
+
+*   `$JSONFMT_CONFIG`
+*   `$XDG_CONFIG_HOME/json-fmt/config.json`
 
 The config file must be a JSON object containing key-value pairs defining each option;
 defaults will be used for any absent options.
@@ -304,9 +290,10 @@ if an array contains one or more elements with types in \[ValueType], put each e
 
 ### Bugs/features
 
-* Fields within an object will be ordered alphabetically.
-  Normally there should be an option for that
-  but I can't yet find a way to parse JSON with field order preserved with Aeson.
+*   There is a known limitation for Aeson where field order is not preserved when parsing an object
+    (see [this comment](https://github.com/haskell/aeson/issues/368#issuecomment-341964656)),
+    so currently fields within an object will be ordered alphabetically.
+    [json](https://hackage.haskell.org/package/json) library parses the object in order and I'm considering switching over.
 
 ### Vim integration
 
