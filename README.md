@@ -2,16 +2,16 @@
 
 ```json
 { "array": [ 1, 2, 2, 3 ]
-, "float": 3.1415926
 , "mixedarr": [ "str"
               , true
               , [ "innerlist" ]
               ]
-, "number": 123
 , "objarr": [ { "ab": "cd"
-              , "num": 0.0
+              , "num": 0
               }
             ]
+, "number": 123
+, "float": 3.1415926
 , "string": "abcd"
 , "subobj": { "k1": "v1"
             , "k2": "v2"
