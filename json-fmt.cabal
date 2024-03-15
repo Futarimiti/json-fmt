@@ -37,7 +37,6 @@ executable json-fmt
 
   build-depends:
     , base                  ^>=4.17.2.1
-    , bytestring
     , data-default
     , directory
     , json-fmt
@@ -55,17 +54,13 @@ library
   other-modules:    Text.JSON.Pretty.CommaFirst.Config
   hs-source-dirs:   lib
   build-depends:
-    , aeson
     , base                       ^>=4.17.2.1
-    , bytestring
     , data-default
     , json
     , lens
     , mtl
     , prettyprinter
     , prettyprinter-combinators
-    , scientific
     , transformers
-    , vector
 
   default-language: GHC2021

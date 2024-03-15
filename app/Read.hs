@@ -5,15 +5,13 @@ module Read where
 import           Control.Monad.Except (ExceptT, MonadError (..), MonadIO (..),
                                        unless)
 import           Control.Monad.Logger (LoggingT, logInfoN)
-import           Data.ByteString      (ByteString)
-import qualified Data.ByteString      as BS
 import qualified Data.Text            as Text
 import           System.Directory     (doesFileExist)
 
 -- T to distinguish from prelude readFile
-readFileT :: FilePath -> ExceptT String (LoggingT IO) ByteString
+readFileT :: FilePath -> ExceptT String (LoggingT IO) String
 readFileT file = do checkPath file
-                    liftIO $ BS.readFile file
+                    liftIO $ readFile file
 
 checkPath :: FilePath -> ExceptT String (LoggingT IO) ()
 checkPath path = do logInfoN $ "Checking file " <> path'
