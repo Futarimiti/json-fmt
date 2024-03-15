@@ -11,9 +11,13 @@ import qualified Data.Text            as Text
 import           System.Directory     (doesFileExist)
 
 -- T to distinguish from prelude readFile
-readFileT :: FilePath -> ExceptT String (LoggingT IO) ByteString
+readFileT :: FilePath -> ExceptT String (LoggingT IO) String
 readFileT file = do checkPath file
-                    liftIO $ BS.readFile file
+                    liftIO $ readFile file
+
+readFileBS :: FilePath -> ExceptT String (LoggingT IO) ByteString
+readFileBS file = do checkPath file
+                     liftIO $ BS.readFile file
 
 checkPath :: FilePath -> ExceptT String (LoggingT IO) ()
 checkPath path = do logInfoN $ "Checking file " <> path'

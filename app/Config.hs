@@ -9,7 +9,7 @@ import           Control.Monad.Logger        (LoggingT, logErrorN, logInfoN)
 import           Data.Default                (Default (def))
 import           Data.Either                 (fromRight)
 import qualified Data.Text                   as Text
-import           Read                        (readFileT)
+import           Read                        (readFileBS)
 import           System.Environment          (lookupEnv)
 import qualified Text.JSON.Pretty.CommaFirst as JSON
 
@@ -37,7 +37,7 @@ xdgConfig = do logInfoN "Attempting to read configuration from $XDG_CONFIG_HOME/
 
 parseFile :: FilePath -> ExceptT String (LoggingT IO) JSON.Config
 parseFile path = do logInfoN $ "Trying to read configuration from " <> path'
-                    content <- readFileT path
+                    content <- readFileBS path
                     case JSON.parseConfigJSON content of
                         Left err -> do logErrorN $ "Error parsing " <> path' <> ": " <> Text.pack err
                                        throwError $ "Error parsing JSON: " <> err

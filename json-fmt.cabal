@@ -64,8 +64,6 @@ library
     , mtl
     , prettyprinter
     , prettyprinter-combinators
-    , scientific
     , transformers
-    , vector
 
   default-language: GHC2021
