@@ -20,11 +20,10 @@
 }
 ```
 
-This branch is a rewrite of the original spaghetti,
-notably specialised libraries are used instead of concatenating strings.
-Lots of breaking changes happened.
-You should be fine if you are new to this project,
-otherwise do not casually migrate; read the updated doc below.
+There is a limitation in v2 where fields within an object cannot be preserved.
+v3 addresses this by switching from `Aeson` to `json` library for parsing,
+nevertheless compromising in performance due to use of less efficient data types.
+If you care about performance and don't mind me messing with your object entries, use v2 branch.
 
 ### Install
 
@@ -287,13 +286,6 @@ if an array contains one or more elements with types in \[ValueType], put each e
 [ [ "elem" ]
 ]
 ```
-
-### Bugs/features
-
-*   There is a known limitation for Aeson where field order is not preserved when parsing an object
-    (see [this comment](https://github.com/haskell/aeson/issues/368#issuecomment-341964656)),
-    so currently fields within an object will be ordered alphabetically.
-    [json](https://hackage.haskell.org/package/json) library parses the object in order and I'm considering switching over.
 
 ### Vim integration
 
