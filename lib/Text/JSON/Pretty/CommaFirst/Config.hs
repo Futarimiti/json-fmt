@@ -31,7 +31,7 @@ import           GHC.Generics           (Generic)
 import           Text.JSON
 import           Text.JSON.Types        (JSObject (..))
 
-data ValueType = Empty
+data ValueType = Empty  -- what is this?
                | Null
                | Bool
                | Number
