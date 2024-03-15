@@ -293,7 +293,7 @@ if an array contains one or more elements with types in \[ValueType], put each e
 *   There is a known limitation for Aeson where field order is not preserved when parsing an object
     (see [this comment](https://github.com/haskell/aeson/issues/368#issuecomment-341964656)),
     so currently fields within an object will be ordered alphabetically.
-    [json](https://hackage.haskell.org/package/json) library parses the object in order and I'm considering switching over.
+    This has been addressed in v3 branch by switching to `json` library.
 
 ### Vim integration
 
