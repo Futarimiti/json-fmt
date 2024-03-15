@@ -31,7 +31,7 @@ import           GHC.Generics           (Generic)
 import           Text.JSON
 import           Text.JSON.Types        (JSObject (..))
 
-data ValueType = Empty  -- what is this?
+data ValueType = Empty  -- checked for empty arr/obj
                | Null
                | Bool
                | Number
