@@ -23,12 +23,13 @@ import           Control.Monad.Identity (Identity)
 import           Data.Aeson             (FromJSON (..), Options (..),
                                          defaultOptions, eitherDecodeStrict,
                                          genericParseJSON)
-import qualified Data.Aeson             as Aeson
 import           Data.ByteString        (ByteString)
 import           Data.Default           (Default (..))
 import           Data.Function          ((&))
 import           Data.Maybe             (fromMaybe)
 import           GHC.Generics           (Generic)
+import           Text.JSON
+import           Text.JSON.Types        (JSObject (..))
 
 data ValueType = Empty
                | Null
@@ -42,16 +43,16 @@ data ValueType = Empty
                | EmptyObject
                deriving (Show, Eq, Read, Generic, FromJSON)
 
-getValueType :: Aeson.Value -> ValueType
-getValueType = \case Aeson.Null -> Null
-                     Aeson.Bool _ -> Bool
-                     Aeson.Number _ -> Number
-                     Aeson.String "" -> EmptyString
-                     Aeson.String _ -> NonEmptyString
-                     Aeson.Array arr | null arr -> EmptyArray
-                                     | otherwise -> FilledArray
-                     Aeson.Object obj | null obj -> EmptyObject
-                                      | otherwise -> FilledObject
+getValueType :: JSValue -> ValueType
+getValueType = \case JSObject (JSONObject o) | null o -> EmptyObject
+                                             | otherwise -> FilledObject
+                     JSArray arr | null arr -> EmptyArray
+                                 | otherwise -> FilledArray
+                     JSString "" -> EmptyString
+                     JSString _ -> NonEmptyString
+                     JSRational _ _ -> Number
+                     JSBool _ -> Bool
+                     JSNull -> Null
 
 type family Field f a where
   Field Identity a = a
