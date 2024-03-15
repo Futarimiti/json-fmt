@@ -20,7 +20,9 @@
 }
 ```
 
-There is a limitation in v2 where fields within an object cannot be preserved.
+### v3
+
+There is a limitation in v2 where the order of fields within an object cannot be preserved.
 v3 addresses this by switching from `Aeson` to `json` library for parsing,
 nevertheless compromising in performance due to use of less efficient data types.
 If you care about performance and don't mind me messing with your object entries, use v2 branch.
