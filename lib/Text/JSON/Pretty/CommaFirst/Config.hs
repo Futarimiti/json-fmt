@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell   #-}
 
-module Text.JSON.Format.Config
+module Text.JSON.Pretty.CommaFirst.Config
   ( ValueType (..), getValueType
   , Config, parseConfigJSON
   , spaceNBeforeColon
@@ -26,7 +26,7 @@ import           Data.Aeson             (FromJSON (..), Options (..),
 import qualified Data.Aeson             as Aeson
 import           Data.ByteString        (ByteString)
 import           Data.Default           (Default (..))
-import           Data.Function
+import           Data.Function          ((&))
 import           Data.Maybe             (fromMaybe)
 import           GHC.Generics           (Generic)
 
@@ -126,4 +126,3 @@ overrideDefaults input = def
 -- Default values will be used for missing fields.
 parseConfigJSON :: ByteString -> Either String Config
 parseConfigJSON = fmap overrideDefaults . eitherDecodeStrict @ConfigMaybe
-

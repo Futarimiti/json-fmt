@@ -51,14 +51,15 @@ executable json-fmt
 
 library
   import:           warnings, extensions
-  exposed-modules:  Text.JSON.Format
-  other-modules:    Text.JSON.Format.Config
+  exposed-modules:  Text.JSON.Pretty.CommaFirst
+  other-modules:    Text.JSON.Pretty.CommaFirst.Config
   hs-source-dirs:   lib
   build-depends:
     , aeson
     , base                       ^>=4.17.2.1
     , bytestring
     , data-default
+    , json
     , lens
     , mtl
     , prettyprinter

@@ -2,16 +2,16 @@
 
 module Config (getConfig) where
 
-import           Control.Applicative  ((<|>))
-import           Control.Monad.Except (ExceptT, MonadError (throwError),
-                                       MonadIO (liftIO), runExceptT)
-import           Control.Monad.Logger (LoggingT, logErrorN, logInfoN)
-import           Data.Default         (Default (def))
-import           Data.Either          (fromRight)
-import qualified Data.Text            as Text
-import           Read                 (readFileT)
-import           System.Environment   (lookupEnv)
-import qualified Text.JSON.Format     as JSON
+import           Control.Applicative         ((<|>))
+import           Control.Monad.Except        (ExceptT, MonadError (throwError),
+                                              MonadIO (liftIO), runExceptT)
+import           Control.Monad.Logger        (LoggingT, logErrorN, logInfoN)
+import           Data.Default                (Default (def))
+import           Data.Either                 (fromRight)
+import qualified Data.Text                   as Text
+import           Read                        (readFileT)
+import           System.Environment          (lookupEnv)
+import qualified Text.JSON.Pretty.CommaFirst as JSON
 
 -- | Contains a configuration from either user or default
 getConfig :: LoggingT IO JSON.Config
