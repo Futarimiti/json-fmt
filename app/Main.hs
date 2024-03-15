@@ -9,6 +9,7 @@ import           Control.Monad.Except        (MonadIO (..), MonadTrans (..),
 import           Control.Monad.Logger        (LogLevel (..), filterLogger,
                                               logErrorN, runStderrLoggingT)
 import           Control.Monad.Reader        (ReaderT (..), mapReaderT)
+import qualified Data.ByteString             as BS
 import qualified Data.Text                   as Text
 import           Options                     (parseArgs)
 import           Read                        (readFileT)
@@ -20,13 +21,13 @@ main = do Action {..} <- parseArgs
           let loggedOutcome = runExceptT $ do
                 config <- lift getConfig
                 input <- case format of
-                           FormatStdin     -> liftIO getContents
+                           FormatStdin     -> liftIO BS.getContents
                            FormatFile path -> readFileT path
                 lift $ runReaderT
                   (mapReaderT (either (logErrorN . (("Error formatting " <> (case format of
                                                                                FormatStdin -> "<stdin>"
                                                                                FormatFile path -> Text.pack path) <> ": ") <>) . Text.pack)
-                                      (liftIO . putStr) . runExcept) (JSON.format input)) config
+                                      (liftIO . BS.putStr) . runExcept) (JSON.format input)) config
           let filterImportant = filterLogger (const (>= LevelWarn))
           outcome <- runStderrLoggingT $ (if verbose then id else filterImportant) loggedOutcome
           case outcome of
