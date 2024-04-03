@@ -1,0 +1,77 @@
+module Text.JSON.Pretty.CommaFirst.Array (ppArr) where
+
+import                          Control.Lens                       (view)
+import                          Control.Monad.Reader
+import                          Prettyprinter                      hiding (nest)
+import                qualified Prettyprinter                      as PP
+import                          Text.JSON
+import {-# SOURCE #-}           Text.JSON.Pretty.CommaFirst        (ppValue)
+import                          Text.JSON.Pretty.CommaFirst.Config
+import                          Text.JSON.Pretty.CommaFirst.Util   (padding)
+
+ppArr :: Monad m => Int -> [JSValue] -> ReaderT Config m (Doc ann)
+ppArr nest []    = ppEmptyArr nest
+ppArr nest [val] = ppOneElemArr nest val
+ppArr nest vec   = ppMultiElemArr nest vec
+
+ppMultiElemArr :: Monad m => Int -> [JSValue] -> ReaderT Config m (Doc ann)
+ppMultiElemArr nest vec = do hasSepLineElem <- checkSepLineElem vec
+                             if hasSepLineElem then ppSepLineMultiElemArr nest vec
+                                               else ppInlineMultiElemArr vec
+
+ppInlineMultiElemArr :: Monad m => [JSValue] -> ReaderT Config m (Doc ann)
+ppInlineMultiElemArr vec = do pad <- arrPadding
+                              elems <- ppInlineElems vec
+                              pure $ brackets $ pad <> elems <> pad
+
+ppInlineElems :: Monad m => [JSValue] -> ReaderT Config m (Doc ann)
+ppInlineElems vec = do spaceBefComma <- asks (view spaceNBeforeArrComma)
+                       spaceAftComma <- asks (view spaceNAfterArrComma)
+                       docs <- mapM (ppValue 0) vec
+                       pure $ mconcat (PP.punctuate ((padding spaceBefComma <> comma <> padding spaceAftComma) <> padding spaceBefComma) docs)
+
+-- nesting logic:
+-- nest = comma/bracket + arrPaddingSpaceN
+ppMultilineElems :: Monad m => [JSValue] -> ReaderT Config m (Doc ann)
+ppMultilineElems vec = do paddingSpace <- asks (view arrPaddingSpaceN)
+                          let pad = padding paddingSpace
+                              nest = 1 + paddingSpace
+                          docs <- mapM (ppValue nest) vec
+                          pure $ mconcat $ PP.punctuate (line <> comma <> pad) docs
+
+ppSepLineMultiElemArr :: Monad m => Int -> [JSValue] -> ReaderT Config m (Doc ann)
+ppSepLineMultiElemArr nest vec = do pad <- arrPadding
+                                    elems <- ppMultilineElems vec
+                                    pure $ PP.nest nest $ vsep [lbracket <> pad <> elems, rbracket]
+
+checkSepLineElem :: Monad m => [JSValue] -> ReaderT Config m Bool
+checkSepLineElem vec = do sepLineElems <- asks (view elemsOnSepLine)
+                          let types = map getValueType vec
+                          pure $ any (`elem` sepLineElems) types
+
+ppOneElemArr :: Monad m => Int -> JSValue -> ReaderT Config m (Doc ann)
+ppOneElemArr nest val = do oneLine <- asks (view oneElemOneLine)
+                           if getValueType val `elem` oneLine then ppInlineOneElemArr val
+                                                              else ppSepLineOneElemArr nest val
+
+ppSepLineOneElemArr :: Monad m => Int -> JSValue -> ReaderT Config m (Doc ann)
+ppSepLineOneElemArr nest val = do paddingSpace <- asks (view arrPaddingSpaceN)
+                                  doc <- ppValue (paddingSpace + 1) val  -- nest logic: comma/bracket + arrPaddingSpaceN
+                                  pad <- arrPadding
+                                  pure $ PP.nest nest $ vsep [lbracket <> pad <> doc, rbracket]
+
+ppInlineOneElemArr :: Monad m => JSValue -> ReaderT Config m (Doc ann)
+ppInlineOneElemArr val = do doc <- ppValue 0 val  -- val presumed to be one-line hence no nesting, could be broken
+                            pad <- arrPadding
+                            pure $ brackets $ pad <> doc <> pad
+
+ppEmptyArr :: Monad m => Int -> ReaderT Config m (Doc ann)
+ppEmptyArr nest = do spaceNumber <- asks (view spaceNInEmptyArr)
+                     oneLine <- asks (view oneElemOneLine)
+                     return $ if Empty `elem` oneLine then brackets $ padding spaceNumber
+                                                      else PP.nest nest $ vsep [lbracket, rbracket]
+
+
+arrPadding :: Monad m => ReaderT Config m (Doc ann)
+arrPadding = do spaceNumber <- asks (view arrPaddingSpaceN)
+                pure $ padding spaceNumber

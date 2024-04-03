@@ -52,7 +52,12 @@ executable json-fmt
 library
   import:           warnings, extensions
   exposed-modules:  Text.JSON.Pretty.CommaFirst
-  other-modules:    Text.JSON.Pretty.CommaFirst.Config
+  other-modules:
+    Text.JSON.Pretty.CommaFirst.Array
+    Text.JSON.Pretty.CommaFirst.Config
+    Text.JSON.Pretty.CommaFirst.Object
+    Text.JSON.Pretty.CommaFirst.Util
+
   hs-source-dirs:   lib
   build-depends:
     , aeson
