@@ -2,10 +2,10 @@
 
 module Config (getConfig) where
 
-import           Control.Applicative         ((<|>))
-import           Control.Monad.Except        (ExceptT, MonadError (throwError),
+import           Control.Applicative         (Alternative, (<|>))
+import           Control.Monad.Except        (MonadError (throwError),
                                               MonadIO (liftIO), runExceptT)
-import           Control.Monad.Logger        (LoggingT, logErrorN, logInfoN)
+import           Control.Monad.Logger        (MonadLogger, logErrorN, logInfoN)
 import           Data.Default                (Default (def))
 import           Data.Either                 (fromRight)
 import qualified Data.Text                   as Text
@@ -14,14 +14,15 @@ import           System.Environment          (lookupEnv)
 import qualified Text.JSON.Pretty.CommaFirst as JSON
 
 -- | Contains a configuration from either user or default
-getConfig :: LoggingT IO JSON.Config
+getConfig :: (MonadIO m, MonadLogger m) => m JSON.Config
 getConfig = fromRight def <$> runExceptT getUserConfig
 
-getUserConfig :: ExceptT String (LoggingT IO) JSON.Config
+getUserConfig :: (Alternative m, MonadError String m, MonadLogger m, MonadIO m)
+              => m JSON.Config
 getUserConfig = do logInfoN "Trying to get user configuration"
                    envConfig <|> xdgConfig <|> throwError "No user configuration found"
 
-envConfig, xdgConfig :: ExceptT String (LoggingT IO) JSON.Config
+envConfig, xdgConfig :: (MonadError String m, MonadLogger m, MonadIO m) => m JSON.Config
 envConfig = do logInfoN "Attempting to read configuration from environment variable"
                destFile <- checkEnv "JSONFMT_CONFIG"
                parseFile destFile
@@ -34,8 +35,7 @@ xdgConfig = do logInfoN "Attempting to read configuration from $XDG_CONFIG_HOME/
 
 -- impl
 
-
-parseFile :: FilePath -> ExceptT String (LoggingT IO) JSON.Config
+parseFile :: (MonadError String m, MonadLogger m, MonadIO m) => FilePath -> m JSON.Config
 parseFile path = do logInfoN $ "Trying to read configuration from " <> path'
                     content <- readFileBS path
                     case JSON.parseConfigJSON content of
@@ -47,8 +47,9 @@ parseFile path = do logInfoN $ "Trying to read configuration from " <> path'
 
 -- | Check out the environment variable
 -- returns it if it's set and not empty, otherwise throws an error
-checkEnv :: String  -- env var name
-         -> ExceptT String (LoggingT IO) String
+checkEnv :: (MonadError String m, MonadLogger m, MonadIO m)
+         => String  -- env var name
+         -> m String
 checkEnv env = do logInfoN $ "Checking env var " <> Text.pack env
                   maybeVal <- liftIO $ lookupEnv env
                   case maybeVal of

@@ -2,24 +2,23 @@
 
 module Read where
 
-import           Control.Monad.Except (ExceptT, MonadError (..), MonadIO (..),
-                                       unless)
-import           Control.Monad.Logger (LoggingT, logInfoN)
+import           Control.Monad.Except (MonadError (..), MonadIO (..), unless)
+import           Control.Monad.Logger (MonadLogger, logInfoN)
 import           Data.ByteString      (ByteString)
 import qualified Data.ByteString      as BS
 import qualified Data.Text            as Text
 import           System.Directory     (doesFileExist)
 
 -- T to distinguish from prelude readFile
-readFileT :: FilePath -> ExceptT String (LoggingT IO) String
+readFileT :: (MonadError String m, MonadIO m, MonadLogger m) => FilePath -> m String
 readFileT file = do checkPath file
                     liftIO $ readFile file
 
-readFileBS :: FilePath -> ExceptT String (LoggingT IO) ByteString
+readFileBS :: (MonadError String m, MonadIO m, MonadLogger m) => FilePath -> m ByteString
 readFileBS file = do checkPath file
                      liftIO $ BS.readFile file
 
-checkPath :: FilePath -> ExceptT String (LoggingT IO) ()
+checkPath :: (MonadError String m, MonadIO m, MonadLogger m) => FilePath -> m ()
 checkPath path = do logInfoN $ "Checking file " <> path'
                     exists <- liftIO $ doesFileExist path
                     unless exists $ do logInfoN $ "File " <> path' <> " does not exist"
