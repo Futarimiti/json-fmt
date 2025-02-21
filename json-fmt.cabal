@@ -36,7 +36,7 @@ executable json-fmt
     Read
 
   build-depends:
-    , base                  ^>=4.17.2.1
+    , base
     , bytestring
     , data-default
     , directory
@@ -61,7 +61,7 @@ library
   hs-source-dirs:   lib
   build-depends:
     , aeson
-    , base                       ^>=4.17.2.1
+    , base
     , bytestring
     , data-default
     , json
