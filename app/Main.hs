@@ -2,18 +2,19 @@
 
 module Main where
 
-import           Action                      (Action (..), FormatAction (..))
-import           Config                      (getConfig)
-import           Control.Monad.Except        (MonadIO (..), MonadTrans (..),
-                                              runExcept, runExceptT)
-import           Control.Monad.Logger        (LogLevel (..), filterLogger,
-                                              logErrorN, runStderrLoggingT)
-import           Control.Monad.Reader        (ReaderT (..), mapReaderT)
-import qualified Data.Text                   as Text
-import           Options                     (parseArgs)
-import           Read                        (readFileT)
-import           System.IO                   (hPutStr, stderr)
-import qualified Text.JSON.Pretty.CommaFirst as JSON
+import Action                      (Action (..), FormatAction (..))
+import Config                      (getConfig)
+import Control.Monad.Except        (runExcept, runExceptT)
+import Control.Monad.IO.Class      (MonadIO (..))
+import Control.Monad.Logger        (LogLevel (..), filterLogger, logErrorN,
+                                    runStderrLoggingT)
+import Control.Monad.Reader        (ReaderT (..), mapReaderT)
+import Control.Monad.Trans         (MonadTrans (..))
+import Data.Text                   qualified as Text
+import Options                     (parseArgs)
+import Read                        (readFileT)
+import System.IO                   (hPutStr, stderr)
+import Text.JSON.Pretty.CommaFirst qualified as JSON
 
 main :: IO ()
 main = do Action {..} <- parseArgs

@@ -2,12 +2,14 @@
 
 module Read where
 
-import           Control.Monad.Except (MonadError (..), MonadIO (..), unless)
-import           Control.Monad.Logger (MonadLogger, logInfoN)
-import           Data.ByteString      (ByteString)
-import qualified Data.ByteString      as BS
-import qualified Data.Text            as Text
-import           System.Directory     (doesFileExist)
+import Control.Monad          (unless)
+import Control.Monad.Except   (MonadError (..))
+import Control.Monad.IO.Class (MonadIO (..))
+import Control.Monad.Logger   (MonadLogger, logInfoN)
+import Data.ByteString        (ByteString)
+import Data.ByteString        qualified as BS
+import Data.Text              qualified as Text
+import System.Directory       (doesFileExist)
 
 -- T to distinguish from prelude readFile
 readFileT :: (MonadError String m, MonadIO m, MonadLogger m) => FilePath -> m String

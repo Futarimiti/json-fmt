@@ -1,10 +1,9 @@
-module Options (parseArgs, Action (..)) where
+module Options (Action (..), parseArgs) where
 
-import           Action              (Action (Action), FormatAction (..))
-import           Options.Applicative (Alternative ((<|>)), Parser, ParserInfo,
-                                      execParser, fullDesc, header, help,
-                                      helper, info, long, metavar, progDesc,
-                                      short, strArgument, switch)
+import Action              (Action (Action), FormatAction (..))
+import Options.Applicative (Alternative ((<|>)), Parser, ParserInfo, execParser, fullDesc,
+                            header, help, helper, info, long, metavar, progDesc, short,
+                            strArgument, switch)
 
 parseArgs :: IO Action
 parseArgs = execParser parserInfo
