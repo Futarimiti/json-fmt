@@ -2,33 +2,34 @@
 {-# LANGUAGE TemplateHaskell   #-}
 
 module Text.JSON.Format.Config
-  ( ValueType (..), getValueType
-  , Config, parseConfigJSON
-  , spaceNBeforeColon
+  ( Config
+  , ValueType (..)
+  , arrPaddingSpaceN
+  , elemsOnSepLine
+  , endWithNewline
+  , getValueType
+  , objPaddingSpaceN
+  , oneElemOneLine
+  , oneEntryOneLine
+  , parseConfigJSON
+  , spaceNAfterArrComma
   , spaceNAfterColon
   , spaceNBeforeArrComma
-  , spaceNAfterArrComma
-  , arrPaddingSpaceN
+  , spaceNBeforeColon
   , spaceNInEmptyArr
   , spaceNInEmptyObj
-  , objPaddingSpaceN
-  , endWithNewline
-  , oneEntryOneLine
-  , oneElemOneLine
-  , elemsOnSepLine
   ) where
 
-import           Control.Lens           (Lens', makeLenses, set, (^.))
-import           Control.Monad.Identity (Identity)
-import           Data.Aeson             (FromJSON (..), Options (..),
-                                         defaultOptions, eitherDecodeStrict,
-                                         genericParseJSON)
-import qualified Data.Aeson             as Aeson
-import           Data.ByteString        (ByteString)
-import           Data.Default           (Default (..))
-import           Data.Function
-import           Data.Maybe             (fromMaybe)
-import           GHC.Generics           (Generic)
+import Control.Lens           (Lens', makeLenses, set, (^.))
+import Control.Monad.Identity (Identity)
+import Data.Aeson             (FromJSON (..), Options (..), defaultOptions,
+                               eitherDecodeStrict, genericParseJSON)
+import Data.Aeson             qualified as Aeson
+import Data.ByteString        (ByteString)
+import Data.Default           (Default (..))
+import Data.Function
+import Data.Maybe             (fromMaybe)
+import GHC.Generics           (Generic)
 
 data ValueType = Empty
                | Null
