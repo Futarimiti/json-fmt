@@ -8,6 +8,7 @@
 
   outputs =
     {
+      self,
       nixpkgs,
       flake-utils,
       ...
@@ -16,11 +17,16 @@
       system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        json-fmt = import ./default.nix { inherit pkgs; };
       in
       {
-        packages.json-fmt = json-fmt;
-        defaultPackage = json-fmt;
+        packages = rec {
+          json-fmt = import ./default.nix { inherit pkgs; };
+          default = json-fmt;
+        };
+        apps = rec {
+          json-fmt = flake-utils.lib.mkApp { drv = self.packages.${system}.json-fmt; };
+          default = json-fmt;
+        };
       }
     );
 }
