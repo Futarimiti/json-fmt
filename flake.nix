@@ -7,26 +7,10 @@
   };
 
   outputs =
-    {
-      self,
-      nixpkgs,
-      flake-utils,
-      ...
-    }:
-    flake-utils.lib.eachDefaultSystem (
-      system:
-      let
-        pkgs = nixpkgs.legacyPackages.${system};
-      in
-      {
-        packages = rec {
-          json-fmt = import ./default.nix { inherit pkgs; };
-          default = json-fmt;
-        };
-        apps = rec {
-          json-fmt = flake-utils.lib.mkApp { drv = self.packages.${system}.json-fmt; };
-          default = json-fmt;
-        };
-      }
-    );
+    { nixpkgs, flake-utils, ... }:
+    flake-utils.lib.eachDefaultSystem (system: {
+      packages.default = import ./default.nix {
+        pkgs = import nixpkgs { inherit system; };
+      };
+    });
 }
