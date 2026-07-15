@@ -9,7 +9,26 @@ import {-# SOURCE #-} Text.JSON.Pretty.CommaFirst        (ppValue)
 import                Text.JSON.Pretty.CommaFirst.Config
 import                Text.JSON.Pretty.CommaFirst.Util   (padding)
 
-ppObj :: MonadReader Config m => Int -> [(String, JSValue)] -> m (Doc ann)
+ppObj :: MonadReader Config m
+      -- | the continuation indentation (in spaces) to apply
+      -- when this object appears as a nested value. It is computed by the parent
+      -- (typically from the width of the key, colon, and surrounding padding), not
+      -- the current nesting depth.
+      --
+      -- For example:
+      -- { "abc": { ... } }
+      -- ^^^^^^^^^
+      -- the inner object would be printed with an indentation of 9
+      -- (the width of @'{ "abc": '@).
+      -- { "abc":
+      --   { ...
+      --   }
+      -- }
+      -- ^^
+      -- and here the indentation is then 2.
+      => Int
+      -> [(String, JSValue)]
+      -> m (Doc ann)
 ppObj nest []           = ppEmptyObj nest
 ppObj nest [(key, val)] = ppOneEntryObj nest (key, val)
 ppObj nest keyvals      = ppMultiEntryObj nest keyvals
@@ -27,11 +46,14 @@ ppOneEntryObj nest (key, val) = do oneLine <- view oneEntryOneLine
                                       then ppInlineOneEntryObj (key, val)
                                       else ppSepLineOneEntryObj nest (key, val)
 
+-- { "a": 1 }
 ppInlineOneEntryObj :: MonadReader Config m => (String, JSValue) -> m (Doc ann)
 ppInlineOneEntryObj entry = do entryDoc <- ppEntry entry
                                pad <- objPadding
                                pure $ braces $ pad <> entryDoc <> pad
 
+-- { "a": 1
+-- }
 ppSepLineOneEntryObj :: MonadReader Config m => Int -> (String, JSValue) -> m (Doc ann)
 ppSepLineOneEntryObj nest entry = do entryDoc <- ppEntry entry
                                      pad <- objPadding
